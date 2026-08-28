@@ -167,6 +167,8 @@ let myAnswers = {};
 let dataReady = false;
 let lastLoadError = null;
 let fxPlayedFor = null;
+let revealFxPlayedFor = null;
+let revealAutoAdvanceTimer = null;
 let deadlineHandling = false;
 
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -471,7 +473,8 @@ function render() {
   else if (r[0] === 'admin') app.innerHTML = dataReady ? viewAdmin() : viewLoading();
   else app.innerHTML = viewHome();
   bindEvents();
-  maybePlayFx();
+  maybePlayRevealFx();
+  maybePlayRankFx();
 }
 
 function viewLoading() {
@@ -537,6 +540,14 @@ function viewChain() {
 /* ---------------- quiz router ---------------- */
 function isRevealed() { try { return sessionStorage.getItem('qz_revealed_' + STATE.examRunId) === '1'; } catch (e) { return false; } }
 function setRevealed() { try { sessionStorage.setItem('qz_revealed_' + STATE.examRunId, '1'); } catch (e) {} }
+function cancelRevealAutoAdvance() {
+  if (revealAutoAdvanceTimer) { clearTimeout(revealAutoAdvanceTimer); revealAutoAdvanceTimer = null; }
+}
+function advanceToRanking() {
+  cancelRevealAutoAdvance();
+  setRevealed();
+  render();
+}
 
 function viewQuizRouter() {
   const me = myParticipant();
@@ -567,7 +578,7 @@ function viewRegister() {
       <label class="field"><span>หมายเลขประจำตัว</span><input type="text" name="svcno" required placeholder="หมายเลขประจำตัว"></label>
       <label class="field">
         <span>รูปถ่าย (ไม่บังคับ)</span>
-        <input type="file" id="photoInput" accept="image/*" capture="environment">
+        <input type="file" id="photoInput" accept="image/*">
         <div id="photoPreview" style="margin-top:10px"></div>
       </label>
       <div class="err" id="regErr" style="display:none"></div>
@@ -639,7 +650,7 @@ function viewScoreReveal(me) {
   return `
   <div class="eyebrow">ผลสอบของคุณ</div>
   <h1>คะแนนของคุณ</h1>
-  <div class="scorereveal">
+  <div class="scorereveal" id="scoreRevealBox">
     ${avatarHtml(me, 72)}
     <div class="bignum" id="revealNum">0</div>
     <div class="outof">จาก ${QUESTIONS.length} คะแนน</div>
@@ -799,7 +810,7 @@ function updateTimerUI() {
 
 /* ---------------- events ---------------- */
 function bindEvents() {
-  document.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click', () => go(el.getAttribute('data-go'))));
+  document.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click', () => { cancelRevealAutoAdvance(); go(el.getAttribute('data-go')); }));
 
   const regForm = document.getElementById('regForm');
   let pendingPhotoDataUrl = null;
@@ -893,8 +904,10 @@ function bindEvents() {
 
   const showRankBtn = document.getElementById('showRankBtn');
   if (showRankBtn) {
-    showRankBtn.addEventListener('click', () => { setRevealed(); render(); });
+    showRankBtn.addEventListener('click', () => advanceToRanking());
     animateScoreReveal(Number(showRankBtn.getAttribute('data-score')) || 0);
+    cancelRevealAutoAdvance();
+    revealAutoAdvanceTimer = setTimeout(advanceToRanking, 4000);
   }
 
   const resetBtn = document.getElementById('resetBtn');
@@ -931,13 +944,29 @@ function animateScoreReveal(target) {
 }
 
 /* ---------------- fx: fireworks + falling plums ---------------- */
-function maybePlayFx() {
+// Celebration on the personal score-reveal screen (shown before the ranking is revealed).
+function maybePlayRevealFx() {
+  const box = document.getElementById('scoreRevealBox');
+  if (!box) return;
+  const key = STATE.examRunId + ':' + (myParticipant() ? myParticipant().id : '');
+  if (revealFxPlayedFor === key) return;
+  revealFxPlayedFor = key;
+  const rect = () => box.getBoundingClientRect();
+  burstFireworks(rect, 1.2);
+  setTimeout(() => burstFireworks(rect, 0.9), 350);
+}
+
+// Rank-based fireworks/plums on the full ranking page — only marks itself "played" once
+// the ranking rows actually exist in the DOM, so it never gets skipped by an earlier
+// visit to the score-reveal screen (which has no .rankrow elements).
+function maybePlayRankFx() {
   const r = currentRoute();
   if (!(r[0] === 'quiz' && dataReady && STATE.examMeta.status === 'finished')) return;
+  const rows = document.querySelectorAll('.rankrow');
+  if (!rows.length) return;
   const key = STATE.examRunId;
   if (fxPlayedFor === key) return;
   fxPlayedFor = key;
-  const rows = document.querySelectorAll('.rankrow');
   rows.forEach(row => {
     const rank = Number(row.getAttribute('data-rank'));
     const rect = () => row.getBoundingClientRect();
