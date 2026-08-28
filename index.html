@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระบบแบบทดสอบออนไลน์</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Taviraj:wght@500;600;700&family=Sarabun:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #f3f1e6; --bg-alt: #e9e7d7; --ink: #23281c; --muted: #6b6f5c;
+    --olive: #3b4b36; --olive-deep: #222b1f; --olive-fill: #e2e8d6;
+    --khaki: #cdbf95; --khaki-fill: #efe9d4; --card: #fbf9ee; --line: #d3d1ba;
+    --pink-fill: #f6dee4; --pink-line: #a83a5c; --pink-deep: #7d2740;
+    --rust: #a33b2e; --rust-fill: #f4ddd8; --rust-deep: #7a2418;
+    --gold: #b8860b; --good: #2e6b3e; --shadow: rgba(34,43,31,0.14);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #171b13; --bg-alt: #1e2317; --ink: #ece7d6; --muted: #a7a68e;
+      --olive: #93a780; --olive-deep: #d3ddc4; --olive-fill: #26301f;
+      --khaki: #b8ab7c; --khaki-fill: #2c2919; --card: #20251a; --line: #3a3f2c;
+      --pink-fill: #3c2430; --pink-line: #e28ba5; --pink-deep: #f3b4c6;
+      --rust: #d97a68; --rust-fill: #34201b; --rust-deep: #f0a996;
+      --gold: #dcb04a; --good: #7fc48d; --shadow: rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #171b13; --bg-alt: #1e2317; --ink: #ece7d6; --muted: #a7a68e;
+    --olive: #93a780; --olive-deep: #d3ddc4; --olive-fill: #26301f;
+    --khaki: #b8ab7c; --khaki-fill: #2c2919; --card: #20251a; --line: #3a3f2c;
+    --pink-fill: #3c2430; --pink-line: #e28ba5; --pink-deep: #f3b4c6;
+    --rust: #d97a68; --rust-fill: #34201b; --rust-deep: #f0a996;
+    --gold: #dcb04a; --good: #7fc48d; --shadow: rgba(0,0,0,0.5);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: 'Sarabun','Noto Sans Thai',sans-serif; line-height: 1.7; min-height: 100vh; }
+  #app { max-width: 760px; margin: 0 auto; padding: 28px 20px 80px; }
+  h1,h2,h3 { font-family: 'Taviraj','Noto Serif Thai',serif; font-weight: 600; color: var(--olive-deep); margin: 0 0 10px; text-wrap: balance; }
+  h1 { font-size: clamp(24px,5vw,32px); } h2 { font-size: clamp(20px,4vw,26px); }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--muted); }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--rust); margin: 0 0 8px; }
+  .backlink { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); text-decoration: none; margin-bottom: 18px; cursor: pointer; }
+  .backlink:hover { color: var(--ink); }
+
+  .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 22px; }
+  @media (max-width: 520px) { .menu-grid { grid-template-columns: 1fr; } }
+  .menu-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 26px 20px;
+    cursor: pointer; text-align: left; box-shadow: 0 2px 10px var(--shadow); transition: transform .15s ease;
+  }
+  .menu-card:hover { transform: translateY(-2px); }
+  .menu-card .ico { font-size: 30px; margin-bottom: 10px; display: block; }
+  .menu-card h3 { margin-bottom: 4px; }
+  .menu-card p { color: var(--muted); font-size: 14px; margin: 0; }
+  .admin-entry { margin-top: 30px; text-align: center; }
+  .admin-entry button { background: none; border: none; color: var(--muted); font-size: 13px; text-decoration: underline; cursor: pointer; padding: 8px; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 14px; box-shadow: 0 1px 6px var(--shadow); }
+  .timeline { border-left: 3px solid var(--khaki); margin-left: 14px; padding-left: 22px; }
+  .timeline .step { position: relative; margin-bottom: 22px; }
+  .timeline .step::before { content: attr(data-n); position: absolute; left: -33px; top: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--olive); color: var(--card); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .timeline .step h3 { font-size: 16px; margin-bottom: 4px; }
+  .timeline .step p { font-size: 14px; color: var(--muted); margin: 0; }
+  .chain-box { background: var(--olive-fill); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 8px; }
+  .chain-box .lvl { font-size: 12px; font-weight: 700; color: var(--rust); text-transform: uppercase; letter-spacing: .05em; }
+  .chain-box h3 { font-size: 16px; margin: 4px 0; }
+  .chain-box p { font-size: 14px; color: var(--muted); margin: 0; }
+  .chain-arrow { text-align: center; font-size: 20px; color: var(--khaki); margin: 2px 0; }
+  .note-box { font-size: 13px; color: var(--muted); background: var(--khaki-fill); border-radius: 10px; padding: 12px 14px; margin-top: 10px; }
+
+  label.field { display: block; margin-bottom: 16px; }
+  label.field span { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+  input[type=text], input[type=number] {
+    width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink); font-size: 15px; font-family: inherit;
+  }
+  input:focus { outline: 2px solid var(--olive); outline-offset: 1px; }
+  button.primary {
+    background: var(--olive); color: var(--card); border: none; border-radius: 999px;
+    padding: 13px 26px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  button.primary:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary:hover:not(:disabled) { filter: brightness(1.08); }
+  button.ghost {
+    background: none; border: 1px solid var(--line); color: var(--ink); border-radius: 999px;
+    padding: 11px 22px; font-size: 14px; cursor: pointer; font-family: inherit;
+  }
+  .err { color: var(--rust-deep); font-size: 13px; margin-top: -8px; margin-bottom: 12px; }
+
+  .waitwrap { text-align: center; padding: 50px 10px; }
+  .waitwrap .spin { width: 42px; height: 42px; border: 4px solid var(--line); border-top-color: var(--olive); border-radius: 50%; margin: 0 auto 20px; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .waitcount { font-size: 13px; color: var(--muted); margin-top: 10px; }
+
+  .qbar { position: sticky; top: 0; background: var(--bg); padding: 10px 0; z-index: 5; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+  .qbar .timerrow { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .qbar .timernum { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--rust-deep); }
+  .progressline { height: 5px; background: var(--line); border-radius: 4px; overflow: hidden; }
+  .progressline i { display: block; height: 100%; background: var(--olive); transition: width .3s ease; }
+
+  .qcard { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 14px; }
+  .qcard .qn { font-size: 12px; font-weight: 700; color: var(--rust); margin-bottom: 6px; }
+  .qcard .qtext { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+  .choice { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; }
+  .choice:hover { background: var(--bg-alt); }
+  .choice.sel { background: var(--olive-fill); border-color: var(--olive); }
+  .choice input { margin-top: 3px; }
+  .choice .lab { font-size: 14px; }
+  .submitbar { position: sticky; bottom: 0; background: var(--bg); padding: 14px 0; border-top: 1px solid var(--line); text-align: center; }
+
+  .rankrow { display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; position: relative; overflow: visible; }
+  .rankrow .rn { font-family: 'Taviraj',serif; font-weight: 700; font-size: 20px; width: 34px; text-align: center; color: var(--muted); }
+  .rankrow.r1 { border-color: var(--gold); background: linear-gradient(90deg, var(--khaki-fill), var(--card)); }
+  .rankrow.r1 .rn { color: var(--gold); font-size: 26px; }
+  .rankrow.r2 .rn, .rankrow.r3 .rn { color: var(--olive); }
+  .rankrow .info { flex: 1; }
+  .rankrow .nm { font-weight: 600; font-size: 15px; }
+  .rankrow .sub { font-size: 12px; color: var(--muted); }
+  .rankrow .sc { font-family: 'Taviraj',serif; font-weight: 700; font-size: 20px; color: var(--olive-deep); }
+  .rankrow.rlast { border-color: var(--rust); }
+  .rankrow.shake { animation: shake .5s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+
+  #fxlayer { position: fixed; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
+
+  .pinbox { max-width: 320px; margin: 60px auto; text-align: center; }
+  .adminpanel .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .stat { background: var(--olive-fill); border-radius: 10px; padding: 10px 14px; font-size: 13px; }
+  .stat b { font-family: 'Taviraj',serif; font-size: 18px; display: block; color: var(--olive-deep); }
+  .badge-lowconf { display: inline-block; font-size: 11px; background: var(--rust-fill); color: var(--rust-deep); padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="fxlayer"></div>
+<script>/* ============================================================
+   แบบทดสอบ + เนื้อหาความรู้ ใบส่งซ่อมเครื่องมือสื่อสาร
+   (Supabase backend — REST + polling, no Artifact dependency)
+   ============================================================ */
+const QUESTIONS = [{"id":1,"q":"แบบฟอร์มใบส่งซ่อม ใช้แบบพิมพ์อะไร","choices":["ทบ.400-006","ทบ.468-311-1","ทบ.400-065","ทบ.468-311"],"correct":3},{"id":2,"q":"แบบฟอร์มใบส่งซ่อมตามระเบียบ ทบ. มีทั้งหมด 4 สี อยากทราบว่ามีสีอะไรบ้าง","choices":["ชมพู น้ำตาล ดำ ขาว","ชมพู เหลือง เขียว ขาว","ชมพู เหลือง เทา ขาว","ชมพู ฟ้า เขียว ขาว"],"correct":1},{"id":3,"q":"ส.1 พัน.102 มีความจำเป็นจะส่งซ่อมวิทยุรับ-ส่ง RT-710 มายัง พัน.ส.ซบร.เขตหลัง อยากทราบว่าใครคือผู้ลงนามอนุมัติให้ส่งซ่อม","choices":["นายทหารซ่อมบำรุง","ผบ.ส.1 พัน.ส.102","นายทหารส่งกำลังบำรุง","นายทหารยุทธการ"],"correct":2},{"id":4,"q":"ถ้าเครื่องสื่อสารที่จะนำมาส่งซ่อม พบว่าตัวเครื่องมีการชำรุด แตกหัก หน่วยส่งซ่อมจะต้องปฏิบัติอย่างไร","choices":["หน่วยจะต้องตั้งคณะกรรมการสอบสวน พร้อมกับแนบผลการสอบสวนมากับใบส่งซ่อม","หน่วยจะต้องนำใบสอบสวนของพนักงานสอบสวนที่เป็นเจ้าหน้าที่ตำรวจของท้องที่ที่เกิดเหตุการณ์ชำรุด","ให้หน่วยนำใบสอบสวนของเจ้าหน้าที่คลังสื่อสาร มาประกอบกับใบส่งซ่อม","นำใบรายงานจาก ผบ.หน่วยส่งซ่อมมากับใบส่งซ่อม"],"correct":0},{"id":5,"q":"การส่งซ่อมเครื่องสื่อสารมีข้อควรปฏิบัติดังนี้ ข้อใดไม่ใช่","choices":["ต้องทำความสะอาดและ ปบ.ระดับหน่วยใช้ให้เรียบร้อยก่อนนำส่งซ่อม","ตัวเครื่องและชิ้นส่วนอะไหล่ทุกส่วน จะต้องครบถ้วน ถูกต้องตามแบบของเครื่องสื่อสารชนิดนั้น","ให้ช่างซ่อมระดับหน่วยใช้ ซ่อมเครื่องสื่อสารให้สุดความสามารถเท่าที่จะซ่อมได้","ช่างซ่อมประจำหน่วยไม่ควรทำการซ่อมจนเกินขีดความสามารถของการซ่อมระดับหน่วย จนเป็นเหตุให้เครื่องสื่อสารเกิดการชำรุดเสียหายมากขึ้น"],"correct":2},{"id":6,"q":"หากท่านเป็นเจ้าหน้าที่นำเครื่องสื่อสารมาส่งซ่อม เมื่อเสร็จสิ้นกระบวนการส่งซ่อมเรียบร้อยแล้ว เจ้าหน้าที่จากหน่วยรับซ่อมจะออกเลขงาน และจะส่งคืนใบส่งซ่อมสีชมพูให้ อยากทราบว่าส่งคืนเพราะเหตุผลใด","choices":["เพื่อใช้เป็นหลักฐานนำไปให้ ผบ.หน่วย ดูว่าได้ทำการส่งซ่อมเรียบร้อยแล้ว","เพื่อใช้เป็นหลักฐานในการรับเครื่องสื่อสารคืน","เพื่อใช้เป็นหลักฐาน ให้กับเจ้าหน้าที่สื่อสารของหน่วย ตัดยอดออกจากบัญชีคุม","ถูกทุกข้อ"],"correct":3},{"id":7,"q":"ร.3 พัน.2 พล.ร.3 มีเครื่องรับ-ส่งวิทยุ ขนาดกำลังออกอากาศ 5 วัตต์ ยี่ห้อ ICOM จำนวน 10 เครื่อง ซึ่งเป็น สป.สาย ส. นอก อจย. เกิดชำรุดจากการใช้งาน อยากทราบว่าในขั้นต้น ร.3 พัน.2 พล.ร.3 จะนำวิทยุดังกล่าวไปที่ใด","choices":["กองซ่อมเครื่องสื่อสาร-อิเล็กทรอนิกส์ เขตบางเขน กทม.","พัน.ส.ซบร.เขตหลัง","ให้ผู้ใช้และช่างซ่อมของหน่วย ซ่อมเองก่อน","ส.พัน.3 พล.ร.3"],"correct":2},{"id":8,"q":"พัน.ส.ซบร.เขตหลัง มีภารกิจในการซ่อมบำรุงขั้นใด","choices":["ขั้นสนับสนุนโดยตรง","ขั้นสนับสนุนทั่วไป","ขั้นสนาม และขั้นคลัง","ขั้นหน่วยใช้"],"correct":0},{"id":9,"q":"หน่วยที่สนับสนุนการส่งกำลังในระดับกองทัพภาค คือ กองบัญชาการช่วยรบ (บชร.) อยากทราบว่าจัดอยู่ในส่วนใดตามสายการส่งกำลัง","choices":["หน่วยสนับสนุนโดยตรง","หน่วยสนับสนุนทั่วไป","หน่วยใช้","หน่วยสนับสนุนระดับคลัง"],"correct":1},{"id":10,"q":"หน่วยใช้ หมายถึงข้อใด","choices":["หน่วยระดับกองร้อยขึ้นไปถึงระดับ ทบ.","ทุกหน่วยที่ได้รับประโยชน์จากการใช้ สป.","หน่วยระดับกองพันขึ้นไปถึงระดับ ทบ.","ทุกหน่วยที่เป็นหน่วยทหาร"],"correct":1},{"id":11,"q":"ป้ายแสดงผลการซ่อม (ป้ายแท็ก) ใช้แบบพิมพ์ใด","choices":["400-071","400-072","400-073","400-065"],"correct":1},{"id":12,"q":"เมื่อช่างซ่อมพิจารณาแล้วว่า เครื่องที่ซ่อมนั้น มีความจำเป็นจะต้องเบิกอะไหล่ ในฐานะที่ท่านเป็นช่างซ่อม ท่านต้องทำอย่างไร","choices":["เขียนรายการอะไหล่ที่ต้องการเบิกใส่กระดาษเอ4 แล้วนำไปให้นายทหารซ่อมบำรุง","เขียนรายการอะไหล่ที่ต้องการเบิกใส่ลงไปในป้ายแสดงผลการซ่อม (ป้ายแท็ก)","เขียนรายการอะไหล่ที่ต้องการเบิกลงในใบส่งซ่อมแล้วนำไปให้ จนท.ส่งกำลัง (ร้อย.บก.)","เขียนรายการอะไหล่ที่ต้องการเบิกลงในใบส่งซ่อมแล้วนำไปให้ จนท.ส่งกำลัง กองร้อยซ่อมที่ตนสังกัดอยู่"],"correct":3},{"id":13,"q":"ใบส่งซ่อม (สีขาว) เมื่อเครื่องซ่อมเสร็จแล้ว เก็บไว้ส่วนไหน","choices":["ส่งคืน ตอนรับ-ส่ง ร้อย.บก.","ส่งคืน ตอนส่งกำลัง ร้อย.บก.","ส่งคืน จนท.ส่งกำลัง กองร้อยซ่อม เพื่อเก็บเป็นหลักฐาน","ไม่ต้องส่งคืน เพราะ จนท.คลังชิ้นส่วนซ่อม เก็บไว้แล้วตอนเบิกอะไหล่"],"correct":2},{"id":14,"q":"ในแบบฟอร์มใบส่งซ่อม ช่อง \"ผู้ส่ง\" ใครเป็นผู้ลงนาม","choices":["ผบ.หน่วย ที่ส่งเครื่องมาซ่อม","ฝอ.4 / ผู้ช่วยฯ หรือนายทหารสัญญาบัตรระดับ ผบ.มว. ขึ้นไป ของหน่วยส่งซ่อม","จ่ากองร้อย ของหน่วยส่งซ่อม","เจ้าหน้าที่ ที่มาส่งซ่อม"],"correct":1},{"id":15,"q":"หากคลังชิ้นส่วนซ่อม ไม่มีชิ้นส่วนซ่อมที่ท่านต้องการ ให้ระบุว่า...","choices":["ระงับจ่าย","ไม่มีชิ้นส่วน","ค้างจ่าย","เห็นควรส่งขั้นเหนือ"],"correct":2}];
+const LOW_CONF_IDS = [3,5,7,8,9,10,11,14];
+const PINK_CONTENT = {"title":"ใบสีชมพู","lede":"ในบรรดาใบส่งซ่อม 4 สี (ชมพู เหลือง เขียว ขาว) มีเพียงใบเดียวที่ไม่เคยไปไหนไกลจากมือหน่วยส่งซ่อม — ใบสีชมพู","steps":[{"n":1,"title":"ยื่นพร้อมเครื่อง","body":"หน่วยส่งซ่อมยื่นใบส่งซ่อมครบชุด (ชมพู-เหลือง-เขียว-ขาว) พร้อม คมส. ให้ จนท.ตอนรับ-ส่งตรวจสอบกับหมายเลข คมส."},{"n":2,"title":"คืนทันที","body":"หลังลงหลักฐานและออกเลขงานในทะเบียนกลางเสร็จ จนท.ตอนรับ-ส่งคืนใบสีชมพูให้หน่วยส่งซ่อมทันที ไม่ต้องรอเครื่องซ่อมเสร็จ"},{"n":3,"title":"ถือไว้ตลอดระหว่างซ่อม","body":"หน่วยเก็บใบสีชมพูไว้เป็นหลักฐานยืนยันว่าเครื่องอยู่ระหว่างซ่อม ใช้ติดตามความคืบหน้างานได้ตลอดเวลา"},{"n":4,"title":"ยื่นอีกครั้งเพื่อปิดงาน","body":"เมื่อซ่อมเสร็จ หน่วยนำใบสีชมพูมายื่นคืนที่ตอนรับ-ส่ง เพื่อลงหลักฐานปิดงานซ่อม และรับเครื่องกลับพร้อมใบสีเขียว"}]};
+const CHAIN_CONTENT = {"title":"สายการส่งซ่อม","lede":"เมื่อเครื่องมือสื่อสารชำรุดเกินขีดความสามารถของหน่วย จะถูกส่งไล่ระดับขึ้นไปตามสายการซ่อมบำรุง","levels":[{"n":1,"name":"หน่วยใช้","desc":"หน่วยระดับกองร้อย/กองพันที่ใช้งาน คมส. โดยตรง — ช่างซ่อมประจำหน่วยซ่อมเองให้สุดความสามารถก่อนเสมอ"},{"n":2,"name":"หน่วยสนับสนุนโดยตรง (Direct Support)","desc":"เช่น พัน.ส.ซบร.เขตหลัง — รับซ่อมเมื่อเกินขีดความสามารถของหน่วยใช้ เป็นหน่วยหลักที่รับส่งซ่อมในสายงานของเรา"},{"n":3,"name":"หน่วยสนับสนุนทั่วไป (General Support)","desc":"เช่น บชร. หรือกองซ่อมเครื่องสื่อสาร-อิเล็กทรอนิกส์ — สนับสนุนระดับกองทัพภาค รับซ่อมเมื่อเกินขีดความสามารถของหน่วยสนับสนุนโดยตรง"}],"note":"ชื่อหน่วยจริงในแต่ละสายบังคับบัญชาอาจต่างกันไปตามสังกัด ควรตรวจสอบสายงานที่แน่นอนกับหน่วยเหนือของตนอีกครั้ง"};
+const SUPABASE_URL = "https://gbrqghzlfeyavotywyqm.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdicnFnaHpsZmV5YXZvdHl3eXFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4NDg3NzQsImV4cCI6MjEwMzQyNDc3NH0.77ouENB8EATC8ct9upNUezhQ9b2D7ZaCo250UxHzzbQ";
+
+let STATE = { examRunId: 'run-1', examMeta: { pin: '', timeLimitMinutes: null, status: 'registration', startAt: null }, participants: [], history: [] };
+let myAnswers = {};
+let dataReady = false;
+let lastLoadError = null;
+let fxPlayedFor = null;
+let deadlineHandling = false;
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/* ---------------- Supabase REST helpers ---------------- */
+async function sb(path, opts) {
+  opts = opts || {};
+  const headers = Object.assign({
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+    'Content-Type': 'application/json',
+  }, opts.headers || {});
+  let res;
+  try {
+    res = await fetch(SUPABASE_URL + '/rest/v1/' + path, Object.assign({}, opts, { headers }));
+  } catch (e) {
+    const err = new Error('network_error');
+    err.network = true;
+    throw err;
+  }
+  if (!res.ok) {
+    let detail = '';
+    try { detail = await res.text(); } catch (e) {}
+    const err = new Error('supabase_http_' + res.status);
+    err.status = res.status; err.detail = detail;
+    throw err;
+  }
+  if (res.status === 204) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+function errMsgFor(err) {
+  if (!err) return 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง';
+  if (err.network) return 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
+  if (err.status === 401 || err.status === 403) return 'ระบบไม่มีสิทธิ์บันทึกข้อมูล (ตั้งค่าเซิร์ฟเวอร์ผิดพลาด) กรุณาแจ้งผู้จัดสอบ';
+  if (err.status === 409) return 'ข้อมูลนี้มีอยู่แล้วในระบบ ลองรีเฟรชหน้าเว็บ';
+  if (err.status >= 500) return 'เซิร์ฟเวอร์ขัดข้องชั่วคราว ลองใหม่อีกครั้ง';
+  return 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง (หากไม่หายลองรีเฟรชหน้าเว็บ)';
+}
+
+/* ---------------- data load ---------------- */
+function mapParticipant(p) {
+  return { id: p.id, rank: p.rank, name: p.name, svcno: p.svcno, registeredAt: p.registered_at, answers: p.answers || {}, submittedAt: p.submitted_at, score: p.score };
+}
+
+async function fetchState() {
+  const [stateRows, participants] = await Promise.all([
+    sb('exam_state?id=eq.1&select=*'),
+    sb('participants?select=*&order=registered_at.asc'),
+  ]);
+  const st = (stateRows && stateRows[0]) || { exam_run_id: 'run-1', pin: '2468', time_limit_minutes: null, status: 'registration', start_at: null };
+  const runId = st.exam_run_id;
+  const current = participants.filter(p => p.exam_run_id === runId);
+  const past = participants.filter(p => p.exam_run_id !== runId);
+  const histMap = {};
+  past.forEach(p => { (histMap[p.exam_run_id] = histMap[p.exam_run_id] || []).push(p); });
+  const history = Object.keys(histMap).map(rid => {
+    const parts = histMap[rid];
+    const finishedAt = Math.max.apply(null, parts.map(p => p.submitted_at || p.registered_at || 0));
+    return { examRunId: rid, finishedAt, participants: parts.map(mapParticipant) };
+  }).sort((a, b) => a.finishedAt - b.finishedAt);
+  STATE = {
+    examRunId: runId,
+    examMeta: { pin: st.pin, timeLimitMinutes: st.time_limit_minutes, status: st.status, startAt: st.start_at },
+    participants: current.map(mapParticipant),
+    history,
+  };
+  dataReady = true;
+  lastLoadError = null;
+}
+
+/* ---------------- write actions ---------------- */
+async function insertParticipant(data) {
+  await sb('participants', {
+    method: 'POST',
+    headers: { 'Prefer': 'return=minimal,resolution=ignore-duplicates' },
+    body: JSON.stringify([{
+      id: data.id, exam_run_id: STATE.examRunId, rank: data.rank, name: data.name, svcno: data.svcno,
+      registered_at: data.registeredAt, answers: data.answers || {}, submitted_at: data.submittedAt, score: data.score,
+    }]),
+  });
+}
+
+async function submitAnswers(participantId, answers, score, submittedAt) {
+  await sb('participants?id=eq.' + encodeURIComponent(participantId) + '&submitted_at=is.null', {
+    method: 'PATCH',
+    headers: { 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ answers, score, submitted_at: submittedAt }),
+  });
+}
+
+async function adminStartExam(timeLimitMinutes) {
+  await sb('exam_state?id=eq.1&status=eq.registration', {
+    method: 'PATCH',
+    headers: { 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ status: 'running', start_at: Date.now(), time_limit_minutes: timeLimitMinutes }),
+  });
+}
+
+async function adminResetExam() {
+  const newRunId = 'run-' + Date.now();
+  await sb('exam_state?id=eq.1', {
+    method: 'PATCH',
+    headers: { 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ exam_run_id: newRunId, status: 'registration', start_at: null, time_limit_minutes: null }),
+  });
+}
+
+async function forceFinishStragglers() {
+  const deadline = STATE.examMeta.startAt + STATE.examMeta.timeLimitMinutes * 60000;
+  const stragglers = STATE.participants.filter(p => !p.submittedAt);
+  await Promise.all(stragglers.map(p => sb('participants?id=eq.' + encodeURIComponent(p.id) + '&submitted_at=is.null', {
+    method: 'PATCH', headers: { 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ answers: p.answers || {}, score: scoreOf(p.answers || {}), submitted_at: deadline }),
+  })));
+  await sb('exam_state?id=eq.1&status=eq.running', {
+    method: 'PATCH', headers: { 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ status: 'finished' }),
+  });
+}
+
+async function maybeMarkFinished() {
+  if (STATE.examMeta.status !== 'running') return;
+  if (STATE.participants.length === 0) return;
+  if (!STATE.participants.every(p => p.submittedAt)) return;
+  await sb('exam_state?id=eq.1&status=eq.running', {
+    method: 'PATCH', headers: { 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ status: 'finished' }),
+  });
+}
+
+function scoreOf(answers) {
+  let sc = 0;
+  QUESTIONS.forEach(q => { if (answers[q.id] === q.correct) sc++; });
+  return sc;
+}
+
+function localKey() { return 'qz_p_' + STATE.examRunId; }
+function getLocalParticipantId() { try { return localStorage.getItem(localKey()); } catch (e) { return null; } }
+function setLocalParticipantId(id) { try { localStorage.setItem(localKey(), id); } catch (e) {} }
+function myParticipant() { const id = getLocalParticipantId(); return id ? STATE.participants.find(p => p.id === id) : null; }
+
+/* ---------------- routing ---------------- */
+function go(hash) { location.hash = hash; }
+window.addEventListener('hashchange', render);
+window.addEventListener('load', async () => {
+  try { await fetchState(); } catch (e) { lastLoadError = e; }
+  render();
+  setInterval(tick, 1000);
+  setInterval(pollTick, 2000);
+});
+
+function tick() {
+  const v = currentRoute();
+  if (v[0] === 'quiz' && dataReady && STATE.examMeta.status === 'running') updateTimerUI();
+}
+
+async function pollTick() {
+  const prevStatus = STATE.examMeta.status;
+  const prevRunId = STATE.examRunId;
+  try {
+    await fetchState();
+    const route = currentRoute();
+    const me = myParticipant();
+    const amActivelyTakingExam = route[0] === 'quiz' && STATE.examMeta.status === 'running' && me && !me.submittedAt;
+    const transitioned = STATE.examMeta.status !== prevStatus || STATE.examRunId !== prevRunId;
+    // While someone is mid-exam, don't blow away the question view (and any in-progress
+    // click) just because the 2s poll refreshed — only re-render if their own status
+    // actually changed (e.g. force-finished at the deadline). Everywhere else (waiting
+    // room, submitted-wait, results, admin panel) live counts are exactly what we want.
+    if (!amActivelyTakingExam || transitioned) render();
+    await deadlineWatch();
+  } catch (e) {
+    lastLoadError = e;
+    // keep last known state on screen; don't wipe UI for a transient network hiccup
+  }
+}
+
+async function deadlineWatch() {
+  if (deadlineHandling) return;
+  if (STATE.examMeta.status !== 'running' || !STATE.examMeta.startAt || !STATE.examMeta.timeLimitMinutes) return;
+  const deadline = STATE.examMeta.startAt + STATE.examMeta.timeLimitMinutes * 60000;
+  if (Date.now() < deadline) return;
+  deadlineHandling = true;
+  try { await forceFinishStragglers(); await fetchState(); render(); }
+  catch (e) { /* another client likely already handled it */ }
+  finally { deadlineHandling = false; }
+}
+
+function currentRoute() {
+  const h = (location.hash || '#/').slice(2).split('/').filter(Boolean);
+  return h.length ? h : [''];
+}
+
+/* ---------------- render dispatcher ---------------- */
+function render() {
+  const r = currentRoute();
+  const app = document.getElementById('app');
+  if (r[0] === '' || r[0] === undefined) app.innerHTML = viewHome();
+  else if (r[0] === 'content' && !r[1]) app.innerHTML = viewContentMenu();
+  else if (r[0] === 'content' && r[1] === 'pink') app.innerHTML = viewPink();
+  else if (r[0] === 'content' && r[1] === 'chain') app.innerHTML = viewChain();
+  else if (r[0] === 'quiz') app.innerHTML = dataReady ? viewQuizRouter() : viewLoading();
+  else if (r[0] === 'admin') app.innerHTML = dataReady ? viewAdmin() : viewLoading();
+  else app.innerHTML = viewHome();
+  bindEvents();
+  maybePlayFx();
+}
+
+function viewLoading() {
+  if (lastLoadError) {
+    return `<div class="waitwrap"><p class="muted">${esc(errMsgFor(lastLoadError))}</p><button class="ghost" data-go="#/">← กลับหน้าหลัก</button></div>`;
+  }
+  return `<div class="waitwrap"><div class="spin"></div><p class="muted">กำลังโหลดข้อมูล...</p></div>`;
+}
+
+/* ---------------- views: home / content ---------------- */
+function viewHome() {
+  return `
+  <div class="eyebrow">แบบฝึกความรู้</div>
+  <h1>ใบส่งซ่อมเครื่องมือสื่อสาร</h1>
+  <p class="muted">เลือกเมนูด้านล่าง — อ่านเนื้อหาเพื่อทบทวน หรือเข้าทำแบบทดสอบ</p>
+  <div class="menu-grid">
+    <div class="menu-card" data-go="#/content"><span class="ico">📘</span><h3>เนื้อหา</h3><p>ใบสีชมพู และสายการส่งซ่อม</p></div>
+    <div class="menu-card" data-go="#/quiz"><span class="ico">📝</span><h3>แบบทดสอบ</h3><p>15 ข้อ จับเวลา ประกาศผลพร้อมกัน</p></div>
+  </div>
+  <div class="admin-entry"><button data-go="#/admin">สำหรับผู้ควบคุมระบบ</button></div>
+  `;
+}
+
+function viewContentMenu() {
+  return `
+  <a class="backlink" data-go="#/">← กลับหน้าหลัก</a>
+  <h1>เนื้อหา</h1>
+  <div class="menu-grid">
+    <div class="menu-card" data-go="#/content/pink"><span class="ico">🎫</span><h3>ใบสีชมพู</h3><p>ใบส่งซ่อมสีชมพูไปไหนบ้าง</p></div>
+    <div class="menu-card" data-go="#/content/chain"><span class="ico">🔗</span><h3>สายการส่งซ่อม</h3><p>หน่วยไหนส่งซ่อมไปหาใคร</p></div>
+  </div>
+  `;
+}
+
+function viewPink() {
+  const c = PINK_CONTENT;
+  return `
+  <a class="backlink" data-go="#/content">← กลับ</a>
+  <div class="eyebrow">เนื้อหา</div>
+  <h1>${esc(c.title)}</h1>
+  <p class="muted">${esc(c.lede)}</p>
+  <div class="timeline">
+    ${c.steps.map(s => `<div class="step" data-n="${s.n}"><h3>${esc(s.title)}</h3><p>${esc(s.body)}</p></div>`).join('')}
+  </div>
+  `;
+}
+
+function viewChain() {
+  const c = CHAIN_CONTENT;
+  return `
+  <a class="backlink" data-go="#/content">← กลับ</a>
+  <div class="eyebrow">เนื้อหา</div>
+  <h1>${esc(c.title)}</h1>
+  <p class="muted">${esc(c.lede)}</p>
+  ${c.levels.map((l, i) => `
+    <div class="chain-box"><div class="lvl">ระดับ ${l.n}</div><h3>${esc(l.name)}</h3><p>${esc(l.desc)}</p></div>
+    ${i < c.levels.length - 1 ? '<div class="chain-arrow">⬇</div>' : ''}
+  `).join('')}
+  <div class="note-box">${esc(c.note)}</div>
+  `;
+}
+
+/* ---------------- quiz router ---------------- */
+function viewQuizRouter() {
+  const me = myParticipant();
+  if (!me) return viewRegister();
+  if (STATE.examMeta.status === 'finished') return viewResults(me);
+  if (STATE.examMeta.status === 'running') {
+    if (me.submittedAt) return viewSubmittedWait(me);
+    return viewExam(me);
+  }
+  return viewWaiting(me);
+}
+
+function viewRegister() {
+  return `
+  <a class="backlink" data-go="#/">← กลับหน้าหลัก</a>
+  <div class="eyebrow">แบบทดสอบ</div>
+  <h1>กรอกข้อมูลก่อนเข้าสอบ</h1>
+  <div class="card">
+    <form id="regForm">
+      <label class="field"><span>ยศ</span><input type="text" name="rank" required placeholder="เช่น จ.ส.อ."></label>
+      <label class="field"><span>ชื่อ-นามสกุล</span><input type="text" name="name" required placeholder="ชื่อ นามสกุล"></label>
+      <label class="field"><span>หมายเลขประจำตัว</span><input type="text" name="svcno" required placeholder="หมายเลขประจำตัว"></label>
+      <div class="err" id="regErr" style="display:none"></div>
+      <button class="primary" type="submit">ลงทะเบียนเข้าสอบ</button>
+    </form>
+  </div>
+  `;
+}
+
+function viewWaiting(me) {
+  const n = STATE.participants.length;
+  return `
+  <div class="eyebrow">แบบทดสอบ</div>
+  <h1>ลงทะเบียนแล้ว</h1>
+  <div class="waitwrap">
+    <div class="spin"></div>
+    <p>คุณ <b>${esc(me.rank)} ${esc(me.name)}</b> ลงทะเบียนเรียบร้อย</p>
+    <p class="muted">กำลังรอผู้ควบคุมระบบกดเริ่มสอบ หน้านี้จะเปลี่ยนเองอัตโนมัติ</p>
+    <div class="waitcount">ผู้เข้าสอบที่ลงทะเบียนแล้ว: <b>${n}</b> คน</div>
+  </div>
+  `;
+}
+
+function viewExam(me) {
+  myAnswers = me.answers && Object.keys(me.answers).length ? me.answers : (loadDraftAnswers(me.id) || {});
+  const deadline = STATE.examMeta.startAt + STATE.examMeta.timeLimitMinutes * 60000;
+  const remain = Math.max(0, deadline - Date.now());
+  return `
+  <div class="qbar">
+    <div class="timerrow"><span>คุณ ${esc(me.rank)} ${esc(me.name)}</span><span>เหลือเวลา <span class="timernum" id="timerNum">${fmtTime(remain)}</span></span></div>
+    <div class="progressline"><i id="qProgress" style="width:${answeredPct()}%"></i></div>
+  </div>
+  ${QUESTIONS.map((q, i) => `
+    <div class="qcard">
+      <div class="qn">ข้อ ${i + 1} / ${QUESTIONS.length}</div>
+      <div class="qtext">${esc(q.q)}</div>
+      ${q.choices.map((c, ci) => `
+        <label class="choice ${myAnswers[q.id] === ci ? 'sel' : ''}" data-qid="${q.id}" data-ci="${ci}">
+          <input type="radio" name="q${q.id}" ${myAnswers[q.id] === ci ? 'checked' : ''}>
+          <span class="lab">${['ก','ข','ค','ง'][ci]}. ${esc(c)}</span>
+        </label>
+      `).join('')}
+    </div>
+  `).join('')}
+  <div class="submitbar">
+    <button class="primary" id="submitBtn">ส่งคำตอบ (${Object.keys(myAnswers).length}/${QUESTIONS.length} ข้อ)</button>
+  </div>
+  `;
+}
+
+function viewSubmittedWait(me) {
+  const total = STATE.participants.length;
+  const done = STATE.participants.filter(p => p.submittedAt).length;
+  return `
+  <div class="eyebrow">แบบทดสอบ</div>
+  <h1>ส่งคำตอบแล้ว</h1>
+  <div class="waitwrap">
+    <div class="spin"></div>
+    <p>คุณ <b>${esc(me.rank)} ${esc(me.name)}</b> ได้คะแนน <b>${me.score}</b> / ${QUESTIONS.length}</p>
+    <p class="muted">คะแนนจะประกาศพร้อมกันเมื่อทุกคนทำเสร็จ — กรุณารอสักครู่</p>
+    <div class="waitcount">ส่งคำตอบแล้ว ${done} / ${total} คน</div>
+  </div>
+  `;
+}
+
+function viewResults(me) {
+  const ranked = STATE.participants.slice().sort((a, b) => (b.score - a.score) || ((a.submittedAt || 0) - (b.submittedAt || 0)));
+  const lastIdx = ranked.length - 1;
+  return `
+  <div class="eyebrow">ประกาศผล</div>
+  <h1>ผลการทดสอบ</h1>
+  <p class="muted">ผู้เข้าสอบทั้งหมด ${ranked.length} คน — คะแนนเต็ม ${QUESTIONS.length}</p>
+  <div id="rankList">
+  ${ranked.map((p, i) => {
+    let cls = 'rankrow';
+    if (i === 0) cls += ' r1'; else if (i === 1) cls += ' r2'; else if (i === 2) cls += ' r3';
+    if (i === lastIdx && ranked.length > 1) cls += ' rlast';
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+    return `<div class="${cls}" data-rank="${i}"><div class="rn">${medal}</div><div class="info"><div class="nm">${esc(p.rank)} ${esc(p.name)}</div><div class="sub">${esc(p.svcno)}</div></div><div class="sc">${p.score}</div></div>`;
+  }).join('')}
+  </div>
+  `;
+}
+
+/* ---------------- admin ---------------- */
+function isAdminUnlocked() { try { return sessionStorage.getItem('qz_admin_' + STATE.examRunId) === '1'; } catch (e) { return false; } }
+function viewAdmin() {
+  if (!isAdminUnlocked()) {
+    return `
+    <a class="backlink" data-go="#/">← กลับหน้าหลัก</a>
+    <div class="pinbox">
+      <h2>ผู้ควบคุมระบบ</h2>
+      <p class="muted">ใส่รหัส PIN เพื่อเข้าหน้าควบคุม</p>
+      <form id="pinForm">
+        <label class="field"><input type="text" name="pin" inputmode="numeric" placeholder="PIN"></label>
+        <div class="err" id="pinErr" style="display:none">รหัสไม่ถูกต้อง</div>
+        <button class="primary" type="submit">เข้าสู่ระบบ</button>
+      </form>
+    </div>`;
+  }
+  const n = STATE.participants.length;
+  const submitted = STATE.participants.filter(p => p.submittedAt).length;
+  const status = STATE.examMeta.status;
+  const lowConfNote = QUESTIONS.filter(q => LOW_CONF_IDS.includes(q.id)).length;
+  return `
+  <a class="backlink" data-go="#/">← กลับหน้าหลัก</a>
+  <div class="eyebrow">ผู้ควบคุมระบบ</div>
+  <h1>แผงควบคุมการสอบ</h1>
+  <div class="adminpanel">
+    <div class="row">
+      <div class="stat"><b>${n}</b>ลงทะเบียนแล้ว</div>
+      <div class="stat"><b>${submitted}</b>ส่งคำตอบแล้ว</div>
+      <div class="stat"><b>${status}</b>สถานะ</div>
+    </div>
+    <div class="card">
+      <p style="margin-bottom:8px"><b>เฉลยฉบับร่าง:</b> ${lowConfNote} จาก ${QUESTIONS.length} ข้อ ยังไม่ยืนยัน 100%<span class="badge-lowconf">ตรวจสอบก่อนใช้จริง</span></p>
+      ${status === 'registration' ? `
+        <label class="field"><span>เวลาสอบ (นาที)</span><input type="number" id="timeLimitInput" min="1" value="${STATE.examMeta.timeLimitMinutes || 20}"></label>
+        <button class="primary" id="startBtn" ${n === 0 ? 'disabled' : ''}>เริ่มสอบพร้อมกัน</button>
+        ${n === 0 ? '<p class="muted" style="margin-top:8px">ต้องมีผู้ลงทะเบียนอย่างน้อย 1 คน</p>' : ''}
+      ` : ''}
+      ${status === 'running' ? `<p class="muted">กำลังสอบอยู่ — เวลาที่ตั้งไว้ ${STATE.examMeta.timeLimitMinutes} นาที</p>` : ''}
+      ${status === 'finished' ? `<p class="muted">ประกาศผลแล้ว</p>` : ''}
+    </div>
+    <div class="card">
+      <p style="margin: 0">ผลสอบทุกรอบถูกบันทึกไว้ในฐานข้อมูลอยู่แล้ว ดูย้อนหลังได้จากรายการด้านล่าง</p>
+    </div>
+    <button class="ghost" id="resetBtn">เริ่มรอบสอบใหม่ (เก็บรอบนี้เป็นประวัติ + ล้างรายชื่อ)</button>
+    ${renderHistorySection()}
+  </div>
+  `;
+}
+
+function renderHistorySection() {
+  const hist = STATE.history || [];
+  if (!hist.length) return '';
+  const rows = hist.slice().reverse().map(run => {
+    const ranked = run.participants.slice().sort((a, b) => (b.score || 0) - (a.score || 0) || ((a.submittedAt || Infinity) - (b.submittedAt || Infinity)));
+    const top = ranked[0];
+    const dateStr = new Date(run.finishedAt).toLocaleString('th-TH');
+    return `
+    <details class="card" style="margin-bottom:10px">
+      <summary style="cursor:pointer;font-weight:600">${dateStr} — ${ranked.length} คน${top ? ` — สูงสุด ${top.score}/${QUESTIONS.length} (${esc(top.name)})` : ''}</summary>
+      <div style="margin-top:12px">
+        ${ranked.map((p, i) => `<div class="rankrow" style="margin-bottom:6px"><div class="rn">${i + 1}</div><div class="info"><div class="nm">${esc(p.rank)} ${esc(p.name)}</div><div class="sub">${esc(p.svcno)}</div></div><div class="sc">${p.submittedAt ? p.score : '—'}</div></div>`).join('')}
+      </div>
+    </details>`;
+  }).join('');
+  return `<h3 style="margin-top:24px">ประวัติผลสอบ (${hist.length} รอบ)</h3>${rows}`;
+}
+
+/* ---------------- helpers: timer / draft answers ---------------- */
+function fmtTime(ms) {
+  const s = Math.ceil(ms / 1000);
+  const m = Math.floor(s / 60), ss = s % 60;
+  return String(m).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
+}
+function answeredPct() { return QUESTIONS.length ? Math.round(100 * Object.keys(myAnswers).length / QUESTIONS.length) : 0; }
+function draftKey(pid) { return 'qz_draft_' + STATE.examRunId + '_' + pid; }
+function loadDraftAnswers(pid) { try { return JSON.parse(sessionStorage.getItem(draftKey(pid)) || 'null'); } catch (e) { return null; } }
+function saveDraftAnswers(pid) { try { sessionStorage.setItem(draftKey(pid), JSON.stringify(myAnswers)); } catch (e) {} }
+
+function updateTimerUI() {
+  const el = document.getElementById('timerNum');
+  if (!el) return;
+  const deadline = STATE.examMeta.startAt + STATE.examMeta.timeLimitMinutes * 60000;
+  const remain = Math.max(0, deadline - Date.now());
+  el.textContent = fmtTime(remain);
+  if (remain <= 0) render();
+}
+
+/* ---------------- events ---------------- */
+function bindEvents() {
+  document.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click', () => go(el.getAttribute('data-go'))));
+
+  const regForm = document.getElementById('regForm');
+  if (regForm) regForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(regForm);
+    const rank = fd.get('rank').trim(), name = fd.get('name').trim(), svcno = fd.get('svcno').trim();
+    const errEl = document.getElementById('regErr');
+    if (!rank || !name || !svcno) { errEl.textContent = 'กรุณากรอกข้อมูลให้ครบ'; errEl.style.display = 'block'; return; }
+    if (STATE.examMeta.status !== 'registration') { errEl.textContent = 'ปิดรับลงทะเบียนแล้ว การสอบเริ่มไปแล้ว'; errEl.style.display = 'block'; return; }
+    const btn = regForm.querySelector('button'); btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+    const id = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const data = { id, rank, name, svcno, registeredAt: Date.now(), answers: {}, submittedAt: null, score: null };
+    try {
+      await insertParticipant(data);
+      setLocalParticipantId(id);
+      await fetchState();
+      render();
+    } catch (err) {
+      btn.disabled = false; btn.textContent = 'ลงทะเบียนเข้าสอบ';
+      errEl.textContent = errMsgFor(err);
+      errEl.style.display = 'block';
+    }
+  });
+
+  document.querySelectorAll('.choice').forEach(el => el.addEventListener('click', () => {
+    const qid = Number(el.getAttribute('data-qid')), ci = Number(el.getAttribute('data-ci'));
+    myAnswers[qid] = ci;
+    const me = myParticipant();
+    if (me) saveDraftAnswers(me.id);
+    document.querySelectorAll(`.choice[data-qid="${qid}"]`).forEach(c => c.classList.remove('sel'));
+    el.classList.add('sel');
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) submitBtn.textContent = `ส่งคำตอบ (${Object.keys(myAnswers).length}/${QUESTIONS.length} ข้อ)`;
+    const pb = document.getElementById('qProgress'); if (pb) pb.style.width = answeredPct() + '%';
+  }));
+
+  const submitBtn = document.getElementById('submitBtn');
+  if (submitBtn) submitBtn.addEventListener('click', async () => {
+    const me = myParticipant(); if (!me) return;
+    const missing = QUESTIONS.length - Object.keys(myAnswers).length;
+    if (missing > 0 && !confirm(`ยังเหลือ ${missing} ข้อที่ยังไม่ได้ตอบ ต้องการส่งคำตอบเลยหรือไม่?`)) return;
+    submitBtn.disabled = true; submitBtn.textContent = 'กำลังส่ง...';
+    const score = scoreOf(myAnswers);
+    try {
+      await submitAnswers(me.id, Object.assign({}, myAnswers), score, Date.now());
+      await fetchState();
+      await maybeMarkFinished();
+      await fetchState();
+      render();
+    } catch (err) {
+      submitBtn.disabled = false; submitBtn.textContent = `ส่งคำตอบ (${Object.keys(myAnswers).length}/${QUESTIONS.length} ข้อ)`;
+      alert(errMsgFor(err));
+    }
+  });
+
+  const pinForm = document.getElementById('pinForm');
+  if (pinForm) pinForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const pin = new FormData(pinForm).get('pin');
+    if (pin === STATE.examMeta.pin) { try { sessionStorage.setItem('qz_admin_' + STATE.examRunId, '1'); } catch (er) {} render(); }
+    else { const el = document.getElementById('pinErr'); el.style.display = 'block'; }
+  });
+
+  const startBtn = document.getElementById('startBtn');
+  if (startBtn) startBtn.addEventListener('click', async () => {
+    const tl = Number(document.getElementById('timeLimitInput').value) || 20;
+    startBtn.disabled = true; startBtn.textContent = 'กำลังเริ่ม...';
+    try { await adminStartExam(tl); await fetchState(); render(); }
+    catch (err) { startBtn.disabled = false; startBtn.textContent = 'เริ่มสอบพร้อมกัน'; alert(errMsgFor(err)); }
+  });
+
+  const resetBtn = document.getElementById('resetBtn');
+  if (resetBtn) resetBtn.addEventListener('click', async () => {
+    const msg = STATE.participants.length
+      ? 'บันทึกผลรอบนี้เก็บไว้ในประวัติ แล้วล้างรายชื่อเพื่อเริ่มรอบใหม่?'
+      : 'เริ่มรอบสอบใหม่?';
+    if (!confirm(msg)) return;
+    try { await adminResetExam(); await fetchState(); render(); }
+    catch (err) { alert(errMsgFor(err)); }
+  });
+}
+
+/* ---------------- fx: fireworks + falling plums ---------------- */
+function maybePlayFx() {
+  const r = currentRoute();
+  if (!(r[0] === 'quiz' && dataReady && STATE.examMeta.status === 'finished')) return;
+  const key = STATE.examRunId;
+  if (fxPlayedFor === key) return;
+  fxPlayedFor = key;
+  const rows = document.querySelectorAll('.rankrow');
+  rows.forEach(row => {
+    const rank = Number(row.getAttribute('data-rank'));
+    const rect = () => row.getBoundingClientRect();
+    if (rank === 0) { burstFireworks(rect, 1.4); setTimeout(() => burstFireworks(rect, 1.1), 350); setTimeout(() => burstFireworks(rect, 1.2), 700); }
+    else if (rank === 1 || rank === 2) { burstFireworks(rect, 0.7); }
+  });
+  if (rows.length > 1) {
+    const lastRow = rows[rows.length - 1];
+    dropPlums(() => lastRow.getBoundingClientRect(), lastRow);
+  }
+}
+
+function burstFireworks(getRect, scale) {
+  const layer = document.getElementById('fxlayer');
+  const rect = getRect();
+  const cx = rect.left + rect.width * 0.15, cy = rect.top + rect.height / 2;
+  const colors = ['#dcb04a', '#a83a5c', '#3b4b36', '#a33b2e', '#cdbf95'];
+  const n = Math.round(22 * scale);
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement('div');
+    const ang = (Math.PI * 2 * i) / n + Math.random() * 0.3;
+    const dist = (40 + Math.random() * 60) * scale;
+    const dx = Math.cos(ang) * dist, dy = Math.sin(ang) * dist;
+    p.style.cssText = `position:fixed;left:${cx}px;top:${cy}px;width:${6 * scale}px;height:${6 * scale}px;border-radius:50%;background:${colors[i % colors.length]};opacity:1;transition:transform .8s cubic-bezier(.2,.7,.3,1), opacity .8s ease;transform:translate(0,0);`;
+    layer.appendChild(p);
+    requestAnimationFrame(() => { p.style.transform = `translate(${dx}px, ${dy + 30}px)`; p.style.opacity = '0'; });
+    setTimeout(() => p.remove(), 900);
+  }
+}
+
+function dropPlums(getRect, rowEl) {
+  const layer = document.getElementById('fxlayer');
+  const rect = getRect();
+  const n = 10;
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement('div');
+    const x = rect.left + Math.random() * rect.width;
+    const rot = Math.random() * 360;
+    const delay = Math.random() * 500;
+    p.innerHTML = plumSVG();
+    p.style.cssText = `position:fixed;left:${x}px;top:-40px;width:22px;height:22px;transform:rotate(${rot}deg);transition:top 1s cubic-bezier(.5,0,.9,1) ${delay}ms, transform 1s linear ${delay}ms;`;
+    layer.appendChild(p);
+    requestAnimationFrame(() => { p.style.top = (rect.top + rect.height / 2 - 10) + 'px'; p.style.transform = `rotate(${rot + 200}deg)`; });
+    setTimeout(() => { rowEl.classList.add('shake'); p.remove(); }, 1000 + delay);
+  }
+}
+function plumSVG() {
+  return '<svg viewBox="0 0 24 24" width="22" height="22"><ellipse cx="12" cy="14" rx="8" ry="7" fill="#7d4a8c"/><ellipse cx="9" cy="11" rx="2.4" ry="1.6" fill="#a978b8" opacity=".7"/><path d="M12 7 Q11 3 8 2" stroke="#4b6b3a" stroke-width="1.6" fill="none"/><ellipse cx="7.2" cy="2.2" rx="2.4" ry="1.3" fill="#4b6b3a" transform="rotate(-30 7 2)"/></svg>';
+}
+</script></body></html>
