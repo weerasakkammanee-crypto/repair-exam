@@ -224,7 +224,41 @@ function avatarHtml(p, size) {
 /* Shrink + JPEG-compress a chosen photo client-side before it goes anywhere near the
    network — an uncompressed phone photo is several MB, and that would bloat every
    row in the participants table and make every poll fetch huge. */
-function resizeImageFile(file, maxDim, quality) {
+async function resizeImageFile(file, maxDim, quality) {
+  // iPhones save camera photos as HEIC by default, and only Safari can decode that —
+  // Chrome/Firefox (desktop or Android) fail silently on it. Catch it early with a
+  // message people can actually act on, instead of a generic "loading failed".
+  if (/heic|heif/i.test(file.type || '') || /\.heic$|\.heif$/i.test(file.name || '')) {
+    throw new Error('heic_unsupported');
+  }
+  // createImageBitmap decodes the file directly (no giant base64 string in memory
+  // first), handles more formats than a plain <img>, and can auto-correct EXIF
+  // rotation — which matters a lot for phone photos. Fall back to the classic
+  // FileReader + <img> + canvas path for browsers/files it can't handle.
+  let bitmap = null;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  } catch (e) {
+    try { bitmap = await createImageBitmap(file); } catch (e2) { bitmap = null; }
+  }
+  if (bitmap) {
+    try {
+      let w = bitmap.width, h = bitmap.height;
+      const scale = Math.min(1, maxDim / Math.max(w, h));
+      w = Math.max(1, Math.round(w * scale));
+      h = Math.max(1, Math.round(h * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+      return canvas.toDataURL('image/jpeg', quality);
+    } finally {
+      if (bitmap.close) bitmap.close();
+    }
+  }
+  return resizeImageFileLegacy(file, maxDim, quality);
+}
+
+function resizeImageFileLegacy(file, maxDim, quality) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('read_error'));
@@ -765,7 +799,11 @@ function bindEvents() {
       if (preview) preview.innerHTML = `<img src="${pendingPhotoDataUrl}" style="width:80px;height:80px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`;
     } catch (err) {
       pendingPhotoDataUrl = null;
-      if (preview) preview.textContent = 'โหลดรูปไม่สำเร็จ ลองเลือกรูปใหม่ (ไม่ใส่รูปก็ลงทะเบียนได้ปกติ)';
+      if (preview) {
+        preview.textContent = (err && err.message === 'heic_unsupported')
+          ? 'ไฟล์รูปนี้เป็นแบบ HEIC ซึ่งเบราว์เซอร์นี้เปิดไม่ได้ — ไปที่ Settings > Camera > Formats ของ iPhone เปลี่ยนเป็น "Most Compatible" แล้วถ่ายใหม่ หรือเลือกรูปอื่น (ไม่ใส่รูปก็ลงทะเบียนได้ปกติ)'
+          : 'โหลดรูปไม่สำเร็จ ลองเลือกรูปใหม่ (ไม่ใส่รูปก็ลงทะเบียนได้ปกติ)';
+      }
     }
   });
 
