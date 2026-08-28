@@ -11,6 +11,8 @@
     --pink-fill: #f6dee4; --pink-line: #a83a5c; --pink-deep: #7d2740;
     --rust: #a33b2e; --rust-fill: #f4ddd8; --rust-deep: #7a2418;
     --gold: #b8860b; --good: #2e6b3e; --good-fill: #dcebe0; --shadow: rgba(34,43,31,0.14);
+    --circuit-line: rgba(30,95,140,0.16); --circuit-dot: rgba(30,95,140,0.30);
+    --glow-cyan: rgba(60,170,215,0.30); --glow-gold: rgba(210,164,60,0.24); --glow-rose: rgba(160,55,90,0.18);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -20,6 +22,8 @@
       --pink-fill: #3c2430; --pink-line: #e28ba5; --pink-deep: #f3b4c6;
       --rust: #d97a68; --rust-fill: #34201b; --rust-deep: #f0a996;
       --gold: #dcb04a; --good: #7fc48d; --good-fill: #1c3324; --shadow: rgba(0,0,0,0.5);
+      --circuit-line: rgba(110,205,255,0.09); --circuit-dot: rgba(110,205,255,0.18);
+      --glow-cyan: rgba(110,220,255,0.30); --glow-gold: rgba(220,176,74,0.20); --glow-rose: rgba(216,110,140,0.16);
     }
   }
   :root[data-theme="dark"] {
@@ -29,11 +33,31 @@
     --pink-fill: #3c2430; --pink-line: #e28ba5; --pink-deep: #f3b4c6;
     --rust: #d97a68; --rust-fill: #34201b; --rust-deep: #f0a996;
     --gold: #dcb04a; --good: #7fc48d; --good-fill: #1c3324; --shadow: rgba(0,0,0,0.5);
+    --circuit-line: rgba(110,205,255,0.09); --circuit-dot: rgba(110,205,255,0.18);
+    --glow-cyan: rgba(110,220,255,0.30); --glow-gold: rgba(220,176,74,0.20); --glow-rose: rgba(216,110,140,0.16);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--ink); font-family: 'Sarabun','Noto Sans Thai',sans-serif; line-height: 1.7; min-height: 100vh; }
-  #app { max-width: 760px; margin: 0 auto; padding: 28px 20px 80px; }
+  /* Tech/electric backdrop: a faint circuit grid with a few soft glowing nodes, fixed
+     behind everything. Kept low-opacity and layered under #app (and well under
+     #fxlayer's z-index:40) so it reads as ambient texture — not something that
+     competes with page content or the fireworks/plum effects. */
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      radial-gradient(circle at 14% 20%, var(--glow-cyan), transparent 30%),
+      radial-gradient(circle at 88% 78%, var(--glow-gold), transparent 32%),
+      radial-gradient(circle at 80% 12%, var(--glow-rose), transparent 26%),
+      repeating-linear-gradient(0deg, var(--circuit-line) 0 1px, transparent 1px 42px),
+      repeating-linear-gradient(90deg, var(--circuit-line) 0 1px, transparent 1px 42px),
+      radial-gradient(var(--circuit-dot) 1.4px, transparent 1.6px);
+    background-size: auto, auto, auto, 42px 42px, 42px 42px, 42px 42px;
+    animation: circuitPulse 9s ease-in-out infinite;
+  }
+  @keyframes circuitPulse { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { body::before { animation: none; } }
+  #app { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 28px 20px 80px; }
   h1,h2,h3 { font-family: 'Taviraj','Noto Serif Thai',serif; font-weight: 600; color: var(--olive-deep); margin: 0 0 10px; text-wrap: balance; }
   h1 { font-size: clamp(24px,5vw,32px); } h2 { font-size: clamp(20px,4vw,26px); }
   p { margin: 0 0 12px; }
@@ -127,12 +151,6 @@
 
   input[type=file] { width: 100%; padding: 10px 0; font-size: 14px; font-family: inherit; color: var(--muted); }
 
-  .reviewcard.ok { border-left: 4px solid var(--good); }
-  .reviewcard.bad { border-left: 4px solid var(--rust); }
-  .reviewchoice { padding: 9px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 4px; }
-  .reviewchoice.correct { background: var(--good-fill); color: var(--good); font-weight: 600; }
-  .reviewchoice.wrong { background: var(--rust-fill); color: var(--rust-deep); font-weight: 600; text-decoration: line-through; }
-
   .scorereveal { text-align: center; padding: 36px 10px 10px; }
   .scorereveal .avatar, .scorereveal .avatar-ph { margin: 0 auto 16px; }
   .scorereveal .bignum { font-family: 'Taviraj',serif; font-weight: 700; font-size: 76px; line-height: 1; color: var(--olive-deep); animation: popin .5s cubic-bezier(.34,1.56,.64,1); }
@@ -155,7 +173,7 @@
    แบบทดสอบ + เนื้อหาความรู้ ใบส่งซ่อมเครื่องมือสื่อสาร
    (Supabase backend — REST + polling, no Artifact dependency)
    ============================================================ */
-const QUESTIONS = [{"id":1,"q":"แบบฟอร์มใบส่งซ่อม ใช้แบบพิมพ์อะไร","choices":["ทบ.400-006","ทบ.468-311-1","ทบ.400-065","ทบ.468-311"],"correct":3},{"id":2,"q":"แบบฟอร์มใบส่งซ่อมตามระเบียบ ทบ. มีทั้งหมด 4 สี อยากทราบว่ามีสีอะไรบ้าง","choices":["ชมพู น้ำตาล ดำ ขาว","ชมพู เหลือง เขียว ขาว","ชมพู เหลือง เทา ขาว","ชมพู ฟ้า เขียว ขาว"],"correct":1},{"id":3,"q":"ส.1 พัน.102 มีความจำเป็นจะส่งซ่อมวิทยุรับ-ส่ง RT-710 มายัง พัน.ส.ซบร.เขตหลัง อยากทราบว่าใครคือผู้ลงนามอนุมัติให้ส่งซ่อม","choices":["นายทหารซ่อมบำรุง","ผบ.ส.1 พัน.ส.102","นายทหารส่งกำลังบำรุง","นายทหารยุทธการ"],"correct":1},{"id":4,"q":"ถ้าเครื่องสื่อสารที่จะนำมาส่งซ่อม พบว่าตัวเครื่องมีการชำรุด แตกหัก หน่วยส่งซ่อมจะต้องปฏิบัติอย่างไร","choices":["หน่วยจะต้องตั้งคณะกรรมการสอบสวน พร้อมกับแนบผลการสอบสวนมากับใบส่งซ่อม","หน่วยจะต้องนำใบสอบสวนของพนักงานสอบสวนที่เป็นเจ้าหน้าที่ตำรวจของท้องที่ที่เกิดเหตุการณ์ชำรุด","ให้หน่วยนำใบสอบสวนของเจ้าหน้าที่คลังสื่อสาร มาประกอบกับใบส่งซ่อม","นำใบรายงานจาก ผบ.หน่วยส่งซ่อมมากับใบส่งซ่อม"],"correct":0},{"id":5,"q":"การส่งซ่อมเครื่องสื่อสารมีข้อควรปฏิบัติดังนี้ ข้อใดไม่ใช่","choices":["ต้องทำความสะอาดและ ปบ.ระดับหน่วยใช้ให้เรียบร้อยก่อนนำส่งซ่อม","ตัวเครื่องและชิ้นส่วนอะไหล่ทุกส่วน จะต้องครบถ้วน ถูกต้องตามแบบของเครื่องสื่อสารชนิดนั้น","ให้ช่างซ่อมระดับหน่วยใช้ ซ่อมเครื่องสื่อสารให้สุดความสามารถเท่าที่จะซ่อมได้","ช่างซ่อมประจำหน่วยไม่ควรทำการซ่อมจนเกินขีดความสามารถของการซ่อมระดับหน่วย จนเป็นเหตุให้เครื่องสื่อสารเกิดการชำรุดเสียหายมากขึ้น"],"correct":3},{"id":6,"q":"หากท่านเป็นเจ้าหน้าที่นำเครื่องสื่อสารมาส่งซ่อม เมื่อเสร็จสิ้นกระบวนการส่งซ่อมเรียบร้อยแล้ว เจ้าหน้าที่จากหน่วยรับซ่อมจะออกเลขงาน และจะส่งคืนใบส่งซ่อมสีชมพูให้ อยากทราบว่าส่งคืนเพราะเหตุผลใด","choices":["เพื่อใช้เป็นหลักฐานนำไปให้ ผบ.หน่วย ดูว่าได้ทำการส่งซ่อมเรียบร้อยแล้ว","เพื่อใช้เป็นหลักฐานในการรับเครื่องสื่อสารคืน","เพื่อใช้เป็นหลักฐาน ให้กับเจ้าหน้าที่สื่อสารของหน่วย ตัดยอดออกจากบัญชีคุม","ถูกทุกข้อ"],"correct":1},{"id":7,"q":"ร.3 พัน.2 พล.ร.3 มีเครื่องรับ-ส่งวิทยุ ขนาดกำลังออกอากาศ 5 วัตต์ ยี่ห้อ ICOM จำนวน 10 เครื่อง ซึ่งเป็น สป.สาย ส. นอก อจย. เกิดชำรุดจากการใช้งาน อยากทราบว่าในขั้นต้น ร.3 พัน.2 พล.ร.3 จะนำวิทยุดังกล่าวไปที่ใด","choices":["กองซ่อมเครื่องสื่อสาร-อิเล็กทรอนิกส์ เขตบางเขน กทม.","พัน.ส.ซบร.เขตหลัง","ให้ผู้ใช้และช่างซ่อมของหน่วย ซ่อมเองก่อน","ส.พัน.3 พล.ร.3"],"correct":0},{"id":8,"q":"พัน.ส.ซบร.เขตหลัง มีภารกิจในการซ่อมบำรุงขั้นใด","choices":["ขั้นสนับสนุนโดยตรง","ขั้นสนับสนุนทั่วไป","ขั้นสนาม และขั้นคลัง","ขั้นหน่วยใช้"],"correct":2},{"id":9,"q":"หน่วยที่สนับสนุนการส่งกำลังในระดับกองทัพภาค คือ กองบัญชาการช่วยรบ (บชร.) อยากทราบว่าจัดอยู่ในส่วนใดตามสายการส่งกำลัง","choices":["หน่วยสนับสนุนโดยตรง","หน่วยสนับสนุนทั่วไป","หน่วยใช้","หน่วยสนับสนุนระดับคลัง"],"correct":1},{"id":10,"q":"หน่วยใช้ หมายถึงข้อใด","choices":["หน่วยระดับกองร้อยขึ้นไปถึงระดับ ทบ.","ทุกหน่วยที่ได้รับประโยชน์จากการใช้ สป.","หน่วยระดับกองพันขึ้นไปถึงระดับ ทบ.","ทุกหน่วยที่เป็นหน่วยทหาร"],"correct":1},{"id":11,"q":"ป้ายแสดงผลการซ่อม (ป้ายแท็ก) ใช้แบบพิมพ์ใด","choices":["400-071","400-072","400-073","400-065"],"correct":1},{"id":12,"q":"เมื่อช่างซ่อมพิจารณาแล้วว่า เครื่องที่ซ่อมนั้น มีความจำเป็นจะต้องเบิกอะไหล่ ในฐานะที่ท่านเป็นช่างซ่อม ท่านต้องทำอย่างไร","choices":["เขียนรายการอะไหล่ที่ต้องการเบิกใส่กระดาษเอ4 แล้วนำไปให้นายทหารซ่อมบำรุง","เขียนรายการอะไหล่ที่ต้องการเบิกใส่ลงไปในป้ายแสดงผลการซ่อม (ป้ายแท็ก)","เขียนรายการอะไหล่ที่ต้องการเบิกลงในใบส่งซ่อมแล้วนำไปให้ จนท.ส่งกำลัง (ร้อย.บก.)","เขียนรายการอะไหล่ที่ต้องการเบิกลงในใบส่งซ่อมแล้วนำไปให้ จนท.ส่งกำลัง กองร้อยซ่อมที่ตนสังกัดอยู่"],"correct":3},{"id":13,"q":"ใบส่งซ่อม (สีขาว) เมื่อเครื่องซ่อมเสร็จแล้ว เก็บไว้ส่วนไหน","choices":["ส่งคืน ตอนรับ-ส่ง ร้อย.บก.","ส่งคืน ตอนส่งกำลัง ร้อย.บก.","ส่งคืน จนท.ส่งกำลัง กองร้อยซ่อม เพื่อเก็บเป็นหลักฐาน","ไม่ต้องส่งคืน เพราะ จนท.คลังชิ้นส่วนซ่อม เก็บไว้แล้วตอนเบิกอะไหล่"],"correct":2},{"id":14,"q":"ในแบบฟอร์มใบส่งซ่อม ช่อง \"ผู้ส่ง\" ใครเป็นผู้ลงนาม","choices":["ผบ.หน่วย ที่ส่งเครื่องมาซ่อม","ฝอ.4 / ผู้ช่วยฯ หรือนายทหารสัญญาบัตรระดับ ผบ.มว. ขึ้นไป ของหน่วยส่งซ่อม","จ่ากองร้อย ของหน่วยส่งซ่อม","เจ้าหน้าที่ ที่มาส่งซ่อม"],"correct":1},{"id":15,"q":"หากคลังชิ้นส่วนซ่อม ไม่มีชิ้นส่วนซ่อมที่ท่านต้องการ ให้ระบุว่า...","choices":["ระงับจ่าย","ไม่มีชิ้นส่วน","ค้างจ่าย","เห็นควรส่งขั้นเหนือ"],"correct":2}];
+const QUESTIONS = [{"id":1,"q":"แบบฟอร์มใบส่งซ่อม ใช้แบบพิมพ์อะไร","choices":["ทบ.400-006","ทบ.468-311-1","ทบ.400-065","ทบ.468-311"],"correct":3},{"id":2,"q":"แบบฟอร์มใบส่งซ่อมตามระเบียบ ทบ. มีทั้งหมด 4 สี อยากทราบว่ามีสีอะไรบ้าง","choices":["ชมพู น้ำตาล ดำ ขาว","ชมพู เหลือง เขียว ขาว","ชมพู เหลือง เทา ขาว","ชมพู ฟ้า เขียว ขาว"],"correct":1},{"id":3,"q":"ส.1 พัน.102 มีความจำเป็นจะส่งซ่อมวิทยุรับ-ส่ง RT-710 มายัง พัน.ส.ซบร.เขตหลัง อยากทราบว่าใครคือผู้ลงนามอนุมัติให้ส่งซ่อม","choices":["นายทหารซ่อมบำรุง","ผบ.ส.1 พัน.ส.102","นายทหารส่งกำลังบำรุง","นายทหารยุทธการ"],"correct":1},{"id":4,"q":"ถ้าเครื่องสื่อสารที่จะนำมาส่งซ่อม พบว่าตัวเครื่องมีการชำรุด แตกหัก หน่วยส่งซ่อมจะต้องปฏิบัติอย่างไร","choices":["หน่วยจะต้องตั้งคณะกรรมการสอบสวน พร้อมกับแนบผลการสอบสวนมากับใบส่งซ่อม","หน่วยจะต้องนำใบสอบสวนของพนักงานสอบสวนที่เป็นเจ้าหน้าที่ตำรวจของท้องที่ที่เกิดเหตุการณ์ชำรุด","ให้หน่วยนำใบสอบสวนของเจ้าหน้าที่คลังสื่อสาร มาประกอบกับใบส่งซ่อม","นำใบรายงานจาก ผบ.หน่วยส่งซ่อมมากับใบส่งซ่อม"],"correct":0},{"id":5,"q":"การส่งซ่อมเครื่องสื่อสารมีข้อควรปฏิบัติดังนี้ ข้อใดไม่ใช่","choices":["ต้องทำความสะอาดและ ปบ.ระดับหน่วยใช้ให้เรียบร้อยก่อนนำส่งซ่อม","ตัวเครื่องและชิ้นส่วนอะไหล่ทุกส่วน จะต้องครบถ้วน ถูกต้องตามแบบของเครื่องสื่อสารชนิดนั้น","ให้ช่างซ่อมระดับหน่วยใช้ ซ่อมเครื่องสื่อสารให้สุดความสามารถเท่าที่จะซ่อมได้","ช่างซ่อมประจำหน่วยไม่ควรทำการซ่อมจนเกินขีดความสามารถของการซ่อมระดับหน่วย จนเป็นเหตุให้เครื่องสื่อสารเกิดการชำรุดเสียหายมากขึ้น"],"correct":3},{"id":6,"q":"หากท่านเป็นเจ้าหน้าที่นำเครื่องสื่อสารมาส่งซ่อม เมื่อเสร็จสิ้นกระบวนการส่งซ่อมเรียบร้อยแล้ว เจ้าหน้าที่จากหน่วยรับซ่อมจะออกเลขงาน และจะส่งคืนใบส่งซ่อมสีชมพูให้ อยากทราบว่าส่งคืนเพราะเหตุผลใด","choices":["เพื่อใช้เป็นหลักฐานนำไปให้ ผบ.หน่วย ดูว่าได้ทำการส่งซ่อมเรียบร้อยแล้ว","เพื่อใช้เป็นหลักฐานในการรับเครื่องสื่อสารคืน","เพื่อใช้เป็นหลักฐาน ให้กับเจ้าหน้าที่สื่อสารของหน่วย ตัดยอดออกจากบัญชีคุมชิ้นส่วนซ่อม","ถูกทุกข้อ"],"correct":1},{"id":7,"q":"ร.3 พัน.2 พล.ร.3 มีเครื่องรับ-ส่งวิทยุ ขนาดกำลังออกอากาศ 5 วัตต์ ยี่ห้อ ICOM จำนวน 10 เครื่อง ซึ่งเป็น สป.สาย ส. นอก อจย. เกิดชำรุดจากการใช้งาน อยากทราบว่าในขั้นต้น ร.3 พัน.2 พล.ร.3 จะนำวิทยุดังกล่าวไปที่ใด","choices":["กองซ่อมเครื่องสื่อสาร-อิเล็กทรอนิกส์ เขตบางเขน กทม.","พัน.ส.ซบร.เขตหลัง","ให้ผู้ใช้และช่างซ่อมของหน่วย ซ่อมเองก่อน","ส.พัน.3 พล.ร.3"],"correct":0},{"id":8,"q":"พัน.ส.ซบร.เขตหลัง มีภารกิจในการซ่อมบำรุงขั้นใด","choices":["ขั้นสนับสนุนโดยตรง","ขั้นสนับสนุนทั่วไป","ขั้นสนาม และขั้นคลัง","ขั้นหน่วยใช้"],"correct":2},{"id":9,"q":"หน่วยที่สนับสนุนการส่งกำลังในระดับกองทัพภาค คือ กองบัญชาการช่วยรบ (บชร.) อยากทราบว่าจัดอยู่ในส่วนใดตามสายการส่งกำลัง","choices":["หน่วยสนับสนุนโดยตรง","หน่วยสนับสนุนทั่วไป","หน่วยใช้","หน่วยสนับสนุนระดับคลัง"],"correct":1},{"id":10,"q":"หน่วยใช้ หมายถึงข้อใด","choices":["หน่วยระดับกองร้อยขึ้นไปถึงระดับ ทบ.","ทุกหน่วยที่ได้รับประโยชน์จากการใช้ สป.","หน่วยระดับกองพันขึ้นไปถึงระดับ ทบ.","ทุกหน่วยที่เป็นหน่วยทหาร"],"correct":1},{"id":11,"q":"ป้ายแสดงผลการซ่อม (ป้ายแท็ก) ใช้แบบพิมพ์ใด","choices":["400-071","400-072","400-073","400-065"],"correct":1},{"id":12,"q":"เมื่อช่างซ่อมของหน่วย พิจารณาแล้วว่า เครื่องที่ซ่อมนั้น มีความจำเป็นจะต้องเบิกอะไหล่ ในฐานะที่ท่านเป็นช่างซ่อมระดับ ขั้นคลัง ท่านต้องทำอย่างไร","choices":["เขียนรายการอะไหล่ที่ต้องการเบิกใส่กระดาษเอ4 แล้วนำไปให้นายทหารซ่อมบำรุง","เขียนรายการอะไหล่ที่ต้องการเบิกใส่ลงไปในป้ายแสดงผลการซ่อม (ป้ายแท็ก)","เขียนรายการอะไหล่ที่ต้องการเบิกลงในใบส่งซ่อมแล้วนำไปให้ จนท.ส่งกำลัง (ร้อย.บก.)","เขียนรายการอะไหล่ที่ต้องการเบิกลงในใบส่งซ่อมแล้วนำไปให้ จนท.ส่งกำลัง กองร้อยซ่อมที่ตนสังกัดอยู่"],"correct":3},{"id":13,"q":"ใบส่งซ่อม (สีขาว) เมื่อเครื่องซ่อมเสร็จแล้ว เก็บไว้ส่วนไหน","choices":["ส่งคืน ตอนรับ-ส่ง ร้อย.บก.","ส่งคืน ตอนส่งกำลัง ร้อย.บก.","ส่งคืน จนท.ส่งกำลัง กองร้อยซ่อม เพื่อเก็บเป็นหลักฐาน","ไม่ต้องส่งคืน เพราะ จนท.คลังชิ้นส่วนซ่อม เก็บไว้แล้วตอนเบิกอะไหล่"],"correct":2},{"id":14,"q":"ในแบบฟอร์มใบส่งซ่อม ช่อง \"ผู้ส่ง\" ใครเป็นผู้ลงนาม","choices":["ผบ.หน่วย ที่ส่งเครื่องมาซ่อม","ฝอ.4 / ผู้ช่วยฯ หรือนายทหารสัญญาบัตรระดับ ผบ.มว. ขึ้นไป ของหน่วยส่งซ่อม","จ่ากองร้อย ของหน่วยส่งซ่อม","เจ้าหน้าที่ ที่มาส่งซ่อม"],"correct":1},{"id":15,"q":"หากคลังชิ้นส่วนซ่อม ไม่มีชิ้นส่วนซ่อมที่ท่านต้องการ ให้ระบุว่า...","choices":["ระงับจ่าย","ไม่มีชิ้นส่วน","ค้างจ่าย","เห็นควรส่งขั้นเหนือ"],"correct":2}];
 const LOW_CONF_IDS = [];
 const PINK_CONTENT = {"title":"ใบสีชมพู","lede":"ในบรรดาใบส่งซ่อม 4 สี (ชมพู เหลือง เขียว ขาว) มีเพียงใบเดียวที่ไม่เคยไปไหนไกลจากมือหน่วยส่งซ่อม — ใบสีชมพู","steps":[{"n":1,"title":"ยื่นพร้อมเครื่อง","body":"หน่วยส่งซ่อมยื่นใบส่งซ่อมครบชุด (ชมพู-เหลือง-เขียว-ขาว) พร้อม คมส. ให้ จนท.ตอนรับ-ส่งตรวจสอบกับหมายเลข คมส."},{"n":2,"title":"คืนทันที","body":"หลังลงหลักฐานและออกเลขงานในทะเบียนกลางเสร็จ จนท.ตอนรับ-ส่งคืนใบสีชมพูให้หน่วยส่งซ่อมทันที ไม่ต้องรอเครื่องซ่อมเสร็จ"},{"n":3,"title":"ถือไว้ตลอดระหว่างซ่อม","body":"หน่วยเก็บใบสีชมพูไว้เป็นหลักฐานยืนยันว่าเครื่องอยู่ระหว่างซ่อม ใช้ติดตามความคืบหน้างานได้ตลอดเวลา"},{"n":4,"title":"ยื่นอีกครั้งเพื่อปิดงาน","body":"เมื่อซ่อมเสร็จ หน่วยนำใบสีชมพูมายื่นคืนที่ตอนรับ-ส่ง เพื่อลงหลักฐานปิดงานซ่อม และรับเครื่องกลับพร้อมใบสีเขียว"}]};
 const CHAIN_CONTENT = {"title":"สายการส่งซ่อม","lede":"เมื่อเครื่องมือสื่อสารชำรุดเกินขีดความสามารถของหน่วย จะถูกส่งไล่ระดับขึ้นไปตามสายการซ่อมบำรุง","levels":[{"n":1,"name":"หน่วยใช้","desc":"หน่วยระดับกองร้อย/กองพันที่ใช้งาน คมส. โดยตรง — ช่างซ่อมประจำหน่วยซ่อมเองให้สุดความสามารถก่อนเสมอ"},{"n":2,"name":"หน่วยสนับสนุนโดยตรง (Direct Support)","desc":"เช่น พัน.ส.ซบร.เขตหลัง — รับซ่อมเมื่อเกินขีดความสามารถของหน่วยใช้ เป็นหน่วยหลักที่รับส่งซ่อมในสายงานของเรา"},{"n":3,"name":"หน่วยสนับสนุนทั่วไป (General Support)","desc":"เช่น บชร. หรือกองซ่อมเครื่องสื่อสาร-อิเล็กทรอนิกส์ — สนับสนุนระดับกองทัพภาค รับซ่อมเมื่อเกินขีดความสามารถของหน่วยสนับสนุนโดยตรง"}],"note":"ชื่อหน่วยจริงในแต่ละสายบังคับบัญชาอาจต่างกันไปตามสังกัด ควรตรวจสอบสายงานที่แน่นอนกับหน่วยเหนือของตนอีกครั้ง"};
@@ -468,7 +486,6 @@ function render() {
   else if (r[0] === 'content' && !r[1]) app.innerHTML = viewContentMenu();
   else if (r[0] === 'content' && r[1] === 'pink') app.innerHTML = viewPink();
   else if (r[0] === 'content' && r[1] === 'chain') app.innerHTML = viewChain();
-  else if (r[0] === 'quiz' && r[1] === 'review') app.innerHTML = dataReady ? viewReview() : viewLoading();
   else if (r[0] === 'quiz') app.innerHTML = dataReady ? viewQuizRouter() : viewLoading();
   else if (r[0] === 'admin') app.innerHTML = dataReady ? viewAdmin() : viewLoading();
   else app.innerHTML = viewHome();
@@ -657,40 +674,8 @@ function viewScoreReveal(me) {
     <p style="margin-top:14px">คุณ <b>${esc(me.rank)} ${esc(me.name)}</b></p>
   </div>
   <div class="submitbar" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-    <a class="ghost" data-go="#/quiz/review" style="text-decoration:none;display:inline-flex;align-items:center;padding:11px 22px;border:1px solid var(--line);border-radius:999px;font-size:14px">ดูข้อที่ตอบผิด</a>
     <button class="primary" id="showRankBtn" data-score="${me.score}">ดูผลการจัดอันดับ</button>
   </div>
-  `;
-}
-
-function viewReview() {
-  const me = myParticipant();
-  if (!me || STATE.examMeta.status !== 'finished') {
-    return `<div class="waitwrap"><p class="muted">ยังดูเฉลยไม่ได้ในตอนนี้</p><button class="ghost" data-go="#/quiz">← กลับ</button></div>`;
-  }
-  return `
-  <a class="backlink" data-go="#/quiz">← กลับ</a>
-  <div class="eyebrow">ทบทวนคำตอบ</div>
-  <h1>เฉลยของคุณ</h1>
-  <p class="muted">คุณ ${esc(me.rank)} ${esc(me.name)} — ตอบถูก ${me.score} / ${QUESTIONS.length} ข้อ</p>
-  ${QUESTIONS.map((q, i) => {
-    const mine = me.answers ? me.answers[q.id] : undefined;
-    const isCorrect = mine === q.correct;
-    return `
-    <div class="qcard reviewcard ${isCorrect ? 'ok' : 'bad'}">
-      <div class="qn">ข้อ ${i + 1} / ${QUESTIONS.length} ${isCorrect ? '✅ ตอบถูก' : (mine === undefined ? '⬜ ไม่ได้ตอบ' : '❌ ตอบผิด')}</div>
-      <div class="qtext">${esc(q.q)}</div>
-      ${q.choices.map((c, ci) => {
-        let cls = 'reviewchoice';
-        if (ci === q.correct) cls += ' correct';
-        else if (ci === mine) cls += ' wrong';
-        let tag = '';
-        if (ci === q.correct) tag = '<b>เฉลย</b>';
-        else if (ci === mine) tag = '<b>คุณตอบ</b>';
-        return `<div class="${cls}"><span class="lab">${['ก', 'ข', 'ค', 'ง'][ci]}. ${esc(c)}</span>${tag ? ` ${tag}` : ''}</div>`;
-      }).join('')}
-    </div>`;
-  }).join('')}
   `;
 }
 
@@ -710,14 +695,15 @@ function viewResults(me) {
     return `<div class="${cls}" data-rank="${i}"><div class="rn">${medal}</div>${avatarHtml(p, 40)}<div class="info"><div class="nm">${esc(p.rank)} ${esc(p.name)}</div><div class="sub">${esc(p.svcno)}</div></div><div class="sc">${p.score}</div></div>`;
   }).join('')}
   </div>
-  <div style="text-align:center;margin-top:18px">
-    <a class="ghost" data-go="#/quiz/review" style="text-decoration:none;display:inline-flex;align-items:center;padding:11px 22px;border:1px solid var(--line);border-radius:999px;font-size:14px">ดูข้อที่ตอบผิดของคุณ</a>
-  </div>
   `;
 }
 
 /* ---------------- admin ---------------- */
-function isAdminUnlocked() { try { return sessionStorage.getItem('qz_admin_' + STATE.examRunId) === '1'; } catch (e) { return false; } }
+// Deliberately NOT keyed by examRunId: an admin who's already entered the PIN this
+// session should stay logged in even after starting a new exam round (reset) or
+// clearing history — those actions change examRunId, and re-demanding the PIN for
+// that alone was the "bounced back to login" bug.
+function isAdminUnlocked() { try { return sessionStorage.getItem('qz_admin_unlocked') === '1'; } catch (e) { return false; } }
 function viewAdmin() {
   if (!isAdminUnlocked()) {
     return `
@@ -890,7 +876,7 @@ function bindEvents() {
   if (pinForm) pinForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const pin = new FormData(pinForm).get('pin');
-    if (pin === STATE.examMeta.pin) { try { sessionStorage.setItem('qz_admin_' + STATE.examRunId, '1'); } catch (er) {} render(); }
+    if (pin === STATE.examMeta.pin) { try { sessionStorage.setItem('qz_admin_unlocked', '1'); } catch (er) {} render(); }
     else { const el = document.getElementById('pinErr'); el.style.display = 'block'; }
   });
 
@@ -971,7 +957,7 @@ function maybePlayRankFx() {
     const rank = Number(row.getAttribute('data-rank'));
     const rect = () => row.getBoundingClientRect();
     if (rank === 0) { burstFireworks(rect, 1.4); setTimeout(() => burstFireworks(rect, 1.1), 350); setTimeout(() => burstFireworks(rect, 1.2), 700); }
-    else if (rank === 1 || rank === 2) { burstFireworks(rect, 0.7); }
+    else if (rank === 1 || rank === 2) { burstFireworks(rect, 0.85); }
   });
   if (rows.length > 1) {
     const lastRow = rows[rows.length - 1];
@@ -983,37 +969,50 @@ function burstFireworks(getRect, scale) {
   const layer = document.getElementById('fxlayer');
   const rect = getRect();
   const cx = rect.left + rect.width * 0.15, cy = rect.top + rect.height / 2;
-  const colors = ['#dcb04a', '#a83a5c', '#3b4b36', '#a33b2e', '#cdbf95'];
-  const n = Math.round(22 * scale);
+  // Bright, high-contrast palette (gold/white/cyan sparks over the tactical accents)
+  // so the burst reads clearly instead of blending into the background.
+  const colors = ['#ffd76a', '#ffffff', '#ffb3c9', '#7fe7ff', '#dcb04a', '#a83a5c'];
+  // Quick bright flash at the origin for impact.
+  const flash = document.createElement('div');
+  const flashSize = 26 * scale;
+  flash.style.cssText = `position:fixed;left:${cx - flashSize / 2}px;top:${cy - flashSize / 2}px;width:${flashSize}px;height:${flashSize}px;border-radius:50%;background:radial-gradient(circle,#fff 0%,#ffe9a8 40%,rgba(255,233,168,0) 75%);opacity:1;transition:transform .5s ease-out,opacity .5s ease-out;transform:scale(0.4);pointer-events:none;`;
+  layer.appendChild(flash);
+  requestAnimationFrame(() => { flash.style.transform = 'scale(2.4)'; flash.style.opacity = '0'; });
+  setTimeout(() => flash.remove(), 550);
+
+  const n = Math.round(34 * scale);
   for (let i = 0; i < n; i++) {
     const p = document.createElement('div');
     const ang = (Math.PI * 2 * i) / n + Math.random() * 0.3;
-    const dist = (40 + Math.random() * 60) * scale;
+    const dist = (55 + Math.random() * 90) * scale;
     const dx = Math.cos(ang) * dist, dy = Math.sin(ang) * dist;
-    p.style.cssText = `position:fixed;left:${cx}px;top:${cy}px;width:${6 * scale}px;height:${6 * scale}px;border-radius:50%;background:${colors[i % colors.length]};opacity:1;transition:transform .8s cubic-bezier(.2,.7,.3,1), opacity .8s ease;transform:translate(0,0);`;
+    const size = (5 + Math.random() * 4) * scale;
+    const color = colors[i % colors.length];
+    p.style.cssText = `position:fixed;left:${cx}px;top:${cy}px;width:${size}px;height:${size}px;border-radius:50%;background:${color};box-shadow:0 0 ${6 * scale}px ${2 * scale}px ${color};opacity:1;transition:transform .9s cubic-bezier(.15,.7,.25,1), opacity .9s ease;transform:translate(0,0);pointer-events:none;`;
     layer.appendChild(p);
-    requestAnimationFrame(() => { p.style.transform = `translate(${dx}px, ${dy + 30}px)`; p.style.opacity = '0'; });
-    setTimeout(() => p.remove(), 900);
+    requestAnimationFrame(() => { p.style.transform = `translate(${dx}px, ${dy + 34}px)`; p.style.opacity = '0'; });
+    setTimeout(() => p.remove(), 1000);
   }
 }
 
 function dropPlums(getRect, rowEl) {
   const layer = document.getElementById('fxlayer');
   const rect = getRect();
-  const n = 10;
+  const n = 18;
   for (let i = 0; i < n; i++) {
     const p = document.createElement('div');
     const x = rect.left + Math.random() * rect.width;
     const rot = Math.random() * 360;
-    const delay = Math.random() * 500;
+    const delay = Math.random() * 550;
+    const size = 22 + Math.random() * 14;
     p.innerHTML = plumSVG();
-    p.style.cssText = `position:fixed;left:${x}px;top:-40px;width:22px;height:22px;transform:rotate(${rot}deg);transition:top 1s cubic-bezier(.5,0,.9,1) ${delay}ms, transform 1s linear ${delay}ms;`;
+    p.style.cssText = `position:fixed;left:${x}px;top:-40px;width:${size}px;height:${size}px;transform:rotate(${rot}deg);filter:drop-shadow(0 2px 4px rgba(0,0,0,.35));transition:top 1.05s cubic-bezier(.5,0,.9,1) ${delay}ms, transform 1.05s linear ${delay}ms;pointer-events:none;`;
     layer.appendChild(p);
-    requestAnimationFrame(() => { p.style.top = (rect.top + rect.height / 2 - 10) + 'px'; p.style.transform = `rotate(${rot + 200}deg)`; });
-    setTimeout(() => { rowEl.classList.add('shake'); p.remove(); }, 1000 + delay);
+    requestAnimationFrame(() => { p.style.top = (rect.top + rect.height / 2 - size / 2) + 'px'; p.style.transform = `rotate(${rot + 200}deg)`; });
+    setTimeout(() => { rowEl.classList.add('shake'); p.remove(); }, 1050 + delay);
   }
 }
 function plumSVG() {
-  return '<svg viewBox="0 0 24 24" width="22" height="22"><ellipse cx="12" cy="14" rx="8" ry="7" fill="#7d4a8c"/><ellipse cx="9" cy="11" rx="2.4" ry="1.6" fill="#a978b8" opacity=".7"/><path d="M12 7 Q11 3 8 2" stroke="#4b6b3a" stroke-width="1.6" fill="none"/><ellipse cx="7.2" cy="2.2" rx="2.4" ry="1.3" fill="#4b6b3a" transform="rotate(-30 7 2)"/></svg>';
+  return '<svg viewBox="0 0 24 24" width="22" height="22"><ellipse cx="12" cy="14" rx="8" ry="7" fill="#9a5cae"/><ellipse cx="9" cy="11" rx="2.6" ry="1.8" fill="#d0a3e0" opacity=".85"/><path d="M12 7 Q11 3 8 2" stroke="#4b6b3a" stroke-width="1.6" fill="none"/><ellipse cx="7.2" cy="2.2" rx="2.4" ry="1.3" fill="#5c8a48" transform="rotate(-30 7 2)"/></svg>';
 }
 </script></body></html>
