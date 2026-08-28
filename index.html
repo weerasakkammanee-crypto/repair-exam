@@ -10,7 +10,7 @@
     --khaki: #cdbf95; --khaki-fill: #efe9d4; --card: #fbf9ee; --line: #d3d1ba;
     --pink-fill: #f6dee4; --pink-line: #a83a5c; --pink-deep: #7d2740;
     --rust: #a33b2e; --rust-fill: #f4ddd8; --rust-deep: #7a2418;
-    --gold: #b8860b; --good: #2e6b3e; --shadow: rgba(34,43,31,0.14);
+    --gold: #b8860b; --good: #2e6b3e; --good-fill: #dcebe0; --shadow: rgba(34,43,31,0.14);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -19,7 +19,7 @@
       --khaki: #b8ab7c; --khaki-fill: #2c2919; --card: #20251a; --line: #3a3f2c;
       --pink-fill: #3c2430; --pink-line: #e28ba5; --pink-deep: #f3b4c6;
       --rust: #d97a68; --rust-fill: #34201b; --rust-deep: #f0a996;
-      --gold: #dcb04a; --good: #7fc48d; --shadow: rgba(0,0,0,0.5);
+      --gold: #dcb04a; --good: #7fc48d; --good-fill: #1c3324; --shadow: rgba(0,0,0,0.5);
     }
   }
   :root[data-theme="dark"] {
@@ -28,7 +28,7 @@
     --khaki: #b8ab7c; --khaki-fill: #2c2919; --card: #20251a; --line: #3a3f2c;
     --pink-fill: #3c2430; --pink-line: #e28ba5; --pink-deep: #f3b4c6;
     --rust: #d97a68; --rust-fill: #34201b; --rust-deep: #f0a996;
-    --gold: #dcb04a; --good: #7fc48d; --shadow: rgba(0,0,0,0.5);
+    --gold: #dcb04a; --good: #7fc48d; --good-fill: #1c3324; --shadow: rgba(0,0,0,0.5);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -88,6 +88,7 @@
   .err { color: var(--rust-deep); font-size: 13px; margin-top: -8px; margin-bottom: 12px; }
 
   .waitwrap { text-align: center; padding: 50px 10px; }
+  .waitwrap .avatar, .waitwrap .avatar-ph { display: block; margin: 0 auto 16px; }
   .waitwrap .spin { width: 42px; height: 42px; border: 4px solid var(--line); border-top-color: var(--olive); border-radius: 50%; margin: 0 auto 20px; animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .waitcount { font-size: 13px; color: var(--muted); margin-top: 10px; }
@@ -121,6 +122,23 @@
   .rankrow.shake { animation: shake .5s ease; }
   @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
 
+  .avatar { border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--line); }
+  .avatar-ph { display: flex; align-items: center; justify-content: center; background: var(--olive-fill); color: var(--olive-deep); font-family: 'Taviraj',serif; font-weight: 700; }
+
+  input[type=file] { width: 100%; padding: 10px 0; font-size: 14px; font-family: inherit; color: var(--muted); }
+
+  .reviewcard.ok { border-left: 4px solid var(--good); }
+  .reviewcard.bad { border-left: 4px solid var(--rust); }
+  .reviewchoice { padding: 9px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 4px; }
+  .reviewchoice.correct { background: var(--good-fill); color: var(--good); font-weight: 600; }
+  .reviewchoice.wrong { background: var(--rust-fill); color: var(--rust-deep); font-weight: 600; text-decoration: line-through; }
+
+  .scorereveal { text-align: center; padding: 36px 10px 10px; }
+  .scorereveal .avatar, .scorereveal .avatar-ph { margin: 0 auto 16px; }
+  .scorereveal .bignum { font-family: 'Taviraj',serif; font-weight: 700; font-size: 76px; line-height: 1; color: var(--olive-deep); animation: popin .5s cubic-bezier(.34,1.56,.64,1); }
+  .scorereveal .outof { font-size: 14px; color: var(--muted); margin-top: 4px; }
+  @keyframes popin { 0% { transform: scale(.4); opacity: 0; } 60% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
+
   #fxlayer { position: fixed; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
 
   .pinbox { max-width: 320px; margin: 60px auto; text-align: center; }
@@ -137,8 +155,8 @@
    แบบทดสอบ + เนื้อหาความรู้ ใบส่งซ่อมเครื่องมือสื่อสาร
    (Supabase backend — REST + polling, no Artifact dependency)
    ============================================================ */
-const QUESTIONS = [{"id":1,"q":"แบบฟอร์มใบส่งซ่อม ใช้แบบพิมพ์อะไร","choices":["ทบ.400-006","ทบ.468-311-1","ทบ.400-065","ทบ.468-311"],"correct":3},{"id":2,"q":"แบบฟอร์มใบส่งซ่อมตามระเบียบ ทบ. มีทั้งหมด 4 สี อยากทราบว่ามีสีอะไรบ้าง","choices":["ชมพู น้ำตาล ดำ ขาว","ชมพู เหลือง เขียว ขาว","ชมพู เหลือง เทา ขาว","ชมพู ฟ้า เขียว ขาว"],"correct":1},{"id":3,"q":"ส.1 พัน.102 มีความจำเป็นจะส่งซ่อมวิทยุรับ-ส่ง RT-710 มายัง พัน.ส.ซบร.เขตหลัง อยากทราบว่าใครคือผู้ลงนามอนุมัติให้ส่งซ่อม","choices":["นายทหารซ่อมบำรุง","ผบ.ส.1 พัน.ส.102","นายทหารส่งกำลังบำรุง","นายทหารยุทธการ"],"correct":2},{"id":4,"q":"ถ้าเครื่องสื่อสารที่จะนำมาส่งซ่อม พบว่าตัวเครื่องมีการชำรุด แตกหัก หน่วยส่งซ่อมจะต้องปฏิบัติอย่างไร","choices":["หน่วยจะต้องตั้งคณะกรรมการสอบสวน พร้อมกับแนบผลการสอบสวนมากับใบส่งซ่อม","หน่วยจะต้องนำใบสอบสวนของพนักงานสอบสวนที่เป็นเจ้าหน้าที่ตำรวจของท้องที่ที่เกิดเหตุการณ์ชำรุด","ให้หน่วยนำใบสอบสวนของเจ้าหน้าที่คลังสื่อสาร มาประกอบกับใบส่งซ่อม","นำใบรายงานจาก ผบ.หน่วยส่งซ่อมมากับใบส่งซ่อม"],"correct":0},{"id":5,"q":"การส่งซ่อมเครื่องสื่อสารมีข้อควรปฏิบัติดังนี้ ข้อใดไม่ใช่","choices":["ต้องทำความสะอาดและ ปบ.ระดับหน่วยใช้ให้เรียบร้อยก่อนนำส่งซ่อม","ตัวเครื่องและชิ้นส่วนอะไหล่ทุกส่วน จะต้องครบถ้วน ถูกต้องตามแบบของเครื่องสื่อสารชนิดนั้น","ให้ช่างซ่อมระดับหน่วยใช้ ซ่อมเครื่องสื่อสารให้สุดความสามารถเท่าที่จะซ่อมได้","ช่างซ่อมประจำหน่วยไม่ควรทำการซ่อมจนเกินขีดความสามารถของการซ่อมระดับหน่วย จนเป็นเหตุให้เครื่องสื่อสารเกิดการชำรุดเสียหายมากขึ้น"],"correct":2},{"id":6,"q":"หากท่านเป็นเจ้าหน้าที่นำเครื่องสื่อสารมาส่งซ่อม เมื่อเสร็จสิ้นกระบวนการส่งซ่อมเรียบร้อยแล้ว เจ้าหน้าที่จากหน่วยรับซ่อมจะออกเลขงาน และจะส่งคืนใบส่งซ่อมสีชมพูให้ อยากทราบว่าส่งคืนเพราะเหตุผลใด","choices":["เพื่อใช้เป็นหลักฐานนำไปให้ ผบ.หน่วย ดูว่าได้ทำการส่งซ่อมเรียบร้อยแล้ว","เพื่อใช้เป็นหลักฐานในการรับเครื่องสื่อสารคืน","เพื่อใช้เป็นหลักฐาน ให้กับเจ้าหน้าที่สื่อสารของหน่วย ตัดยอดออกจากบัญชีคุม","ถูกทุกข้อ"],"correct":3},{"id":7,"q":"ร.3 พัน.2 พล.ร.3 มีเครื่องรับ-ส่งวิทยุ ขนาดกำลังออกอากาศ 5 วัตต์ ยี่ห้อ ICOM จำนวน 10 เครื่อง ซึ่งเป็น สป.สาย ส. นอก อจย. เกิดชำรุดจากการใช้งาน อยากทราบว่าในขั้นต้น ร.3 พัน.2 พล.ร.3 จะนำวิทยุดังกล่าวไปที่ใด","choices":["กองซ่อมเครื่องสื่อสาร-อิเล็กทรอนิกส์ เขตบางเขน กทม.","พัน.ส.ซบร.เขตหลัง","ให้ผู้ใช้และช่างซ่อมของหน่วย ซ่อมเองก่อน","ส.พัน.3 พล.ร.3"],"correct":2},{"id":8,"q":"พัน.ส.ซบร.เขตหลัง มีภารกิจในการซ่อมบำรุงขั้นใด","choices":["ขั้นสนับสนุนโดยตรง","ขั้นสนับสนุนทั่วไป","ขั้นสนาม และขั้นคลัง","ขั้นหน่วยใช้"],"correct":0},{"id":9,"q":"หน่วยที่สนับสนุนการส่งกำลังในระดับกองทัพภาค คือ กองบัญชาการช่วยรบ (บชร.) อยากทราบว่าจัดอยู่ในส่วนใดตามสายการส่งกำลัง","choices":["หน่วยสนับสนุนโดยตรง","หน่วยสนับสนุนทั่วไป","หน่วยใช้","หน่วยสนับสนุนระดับคลัง"],"correct":1},{"id":10,"q":"หน่วยใช้ หมายถึงข้อใด","choices":["หน่วยระดับกองร้อยขึ้นไปถึงระดับ ทบ.","ทุกหน่วยที่ได้รับประโยชน์จากการใช้ สป.","หน่วยระดับกองพันขึ้นไปถึงระดับ ทบ.","ทุกหน่วยที่เป็นหน่วยทหาร"],"correct":1},{"id":11,"q":"ป้ายแสดงผลการซ่อม (ป้ายแท็ก) ใช้แบบพิมพ์ใด","choices":["400-071","400-072","400-073","400-065"],"correct":1},{"id":12,"q":"เมื่อช่างซ่อมพิจารณาแล้วว่า เครื่องที่ซ่อมนั้น มีความจำเป็นจะต้องเบิกอะไหล่ ในฐานะที่ท่านเป็นช่างซ่อม ท่านต้องทำอย่างไร","choices":["เขียนรายการอะไหล่ที่ต้องการเบิกใส่กระดาษเอ4 แล้วนำไปให้นายทหารซ่อมบำรุง","เขียนรายการอะไหล่ที่ต้องการเบิกใส่ลงไปในป้ายแสดงผลการซ่อม (ป้ายแท็ก)","เขียนรายการอะไหล่ที่ต้องการเบิกลงในใบส่งซ่อมแล้วนำไปให้ จนท.ส่งกำลัง (ร้อย.บก.)","เขียนรายการอะไหล่ที่ต้องการเบิกลงในใบส่งซ่อมแล้วนำไปให้ จนท.ส่งกำลัง กองร้อยซ่อมที่ตนสังกัดอยู่"],"correct":3},{"id":13,"q":"ใบส่งซ่อม (สีขาว) เมื่อเครื่องซ่อมเสร็จแล้ว เก็บไว้ส่วนไหน","choices":["ส่งคืน ตอนรับ-ส่ง ร้อย.บก.","ส่งคืน ตอนส่งกำลัง ร้อย.บก.","ส่งคืน จนท.ส่งกำลัง กองร้อยซ่อม เพื่อเก็บเป็นหลักฐาน","ไม่ต้องส่งคืน เพราะ จนท.คลังชิ้นส่วนซ่อม เก็บไว้แล้วตอนเบิกอะไหล่"],"correct":2},{"id":14,"q":"ในแบบฟอร์มใบส่งซ่อม ช่อง \"ผู้ส่ง\" ใครเป็นผู้ลงนาม","choices":["ผบ.หน่วย ที่ส่งเครื่องมาซ่อม","ฝอ.4 / ผู้ช่วยฯ หรือนายทหารสัญญาบัตรระดับ ผบ.มว. ขึ้นไป ของหน่วยส่งซ่อม","จ่ากองร้อย ของหน่วยส่งซ่อม","เจ้าหน้าที่ ที่มาส่งซ่อม"],"correct":1},{"id":15,"q":"หากคลังชิ้นส่วนซ่อม ไม่มีชิ้นส่วนซ่อมที่ท่านต้องการ ให้ระบุว่า...","choices":["ระงับจ่าย","ไม่มีชิ้นส่วน","ค้างจ่าย","เห็นควรส่งขั้นเหนือ"],"correct":2}];
-const LOW_CONF_IDS = [3,5,7,8,9,10,11,14];
+const QUESTIONS = [{"id":1,"q":"แบบฟอร์มใบส่งซ่อม ใช้แบบพิมพ์อะไร","choices":["ทบ.400-006","ทบ.468-311-1","ทบ.400-065","ทบ.468-311"],"correct":3},{"id":2,"q":"แบบฟอร์มใบส่งซ่อมตามระเบียบ ทบ. มีทั้งหมด 4 สี อยากทราบว่ามีสีอะไรบ้าง","choices":["ชมพู น้ำตาล ดำ ขาว","ชมพู เหลือง เขียว ขาว","ชมพู เหลือง เทา ขาว","ชมพู ฟ้า เขียว ขาว"],"correct":1},{"id":3,"q":"ส.1 พัน.102 มีความจำเป็นจะส่งซ่อมวิทยุรับ-ส่ง RT-710 มายัง พัน.ส.ซบร.เขตหลัง อยากทราบว่าใครคือผู้ลงนามอนุมัติให้ส่งซ่อม","choices":["นายทหารซ่อมบำรุง","ผบ.ส.1 พัน.ส.102","นายทหารส่งกำลังบำรุง","นายทหารยุทธการ"],"correct":1},{"id":4,"q":"ถ้าเครื่องสื่อสารที่จะนำมาส่งซ่อม พบว่าตัวเครื่องมีการชำรุด แตกหัก หน่วยส่งซ่อมจะต้องปฏิบัติอย่างไร","choices":["หน่วยจะต้องตั้งคณะกรรมการสอบสวน พร้อมกับแนบผลการสอบสวนมากับใบส่งซ่อม","หน่วยจะต้องนำใบสอบสวนของพนักงานสอบสวนที่เป็นเจ้าหน้าที่ตำรวจของท้องที่ที่เกิดเหตุการณ์ชำรุด","ให้หน่วยนำใบสอบสวนของเจ้าหน้าที่คลังสื่อสาร มาประกอบกับใบส่งซ่อม","นำใบรายงานจาก ผบ.หน่วยส่งซ่อมมากับใบส่งซ่อม"],"correct":0},{"id":5,"q":"การส่งซ่อมเครื่องสื่อสารมีข้อควรปฏิบัติดังนี้ ข้อใดไม่ใช่","choices":["ต้องทำความสะอาดและ ปบ.ระดับหน่วยใช้ให้เรียบร้อยก่อนนำส่งซ่อม","ตัวเครื่องและชิ้นส่วนอะไหล่ทุกส่วน จะต้องครบถ้วน ถูกต้องตามแบบของเครื่องสื่อสารชนิดนั้น","ให้ช่างซ่อมระดับหน่วยใช้ ซ่อมเครื่องสื่อสารให้สุดความสามารถเท่าที่จะซ่อมได้","ช่างซ่อมประจำหน่วยไม่ควรทำการซ่อมจนเกินขีดความสามารถของการซ่อมระดับหน่วย จนเป็นเหตุให้เครื่องสื่อสารเกิดการชำรุดเสียหายมากขึ้น"],"correct":3},{"id":6,"q":"หากท่านเป็นเจ้าหน้าที่นำเครื่องสื่อสารมาส่งซ่อม เมื่อเสร็จสิ้นกระบวนการส่งซ่อมเรียบร้อยแล้ว เจ้าหน้าที่จากหน่วยรับซ่อมจะออกเลขงาน และจะส่งคืนใบส่งซ่อมสีชมพูให้ อยากทราบว่าส่งคืนเพราะเหตุผลใด","choices":["เพื่อใช้เป็นหลักฐานนำไปให้ ผบ.หน่วย ดูว่าได้ทำการส่งซ่อมเรียบร้อยแล้ว","เพื่อใช้เป็นหลักฐานในการรับเครื่องสื่อสารคืน","เพื่อใช้เป็นหลักฐาน ให้กับเจ้าหน้าที่สื่อสารของหน่วย ตัดยอดออกจากบัญชีคุม","ถูกทุกข้อ"],"correct":1},{"id":7,"q":"ร.3 พัน.2 พล.ร.3 มีเครื่องรับ-ส่งวิทยุ ขนาดกำลังออกอากาศ 5 วัตต์ ยี่ห้อ ICOM จำนวน 10 เครื่อง ซึ่งเป็น สป.สาย ส. นอก อจย. เกิดชำรุดจากการใช้งาน อยากทราบว่าในขั้นต้น ร.3 พัน.2 พล.ร.3 จะนำวิทยุดังกล่าวไปที่ใด","choices":["กองซ่อมเครื่องสื่อสาร-อิเล็กทรอนิกส์ เขตบางเขน กทม.","พัน.ส.ซบร.เขตหลัง","ให้ผู้ใช้และช่างซ่อมของหน่วย ซ่อมเองก่อน","ส.พัน.3 พล.ร.3"],"correct":0},{"id":8,"q":"พัน.ส.ซบร.เขตหลัง มีภารกิจในการซ่อมบำรุงขั้นใด","choices":["ขั้นสนับสนุนโดยตรง","ขั้นสนับสนุนทั่วไป","ขั้นสนาม และขั้นคลัง","ขั้นหน่วยใช้"],"correct":2},{"id":9,"q":"หน่วยที่สนับสนุนการส่งกำลังในระดับกองทัพภาค คือ กองบัญชาการช่วยรบ (บชร.) อยากทราบว่าจัดอยู่ในส่วนใดตามสายการส่งกำลัง","choices":["หน่วยสนับสนุนโดยตรง","หน่วยสนับสนุนทั่วไป","หน่วยใช้","หน่วยสนับสนุนระดับคลัง"],"correct":1},{"id":10,"q":"หน่วยใช้ หมายถึงข้อใด","choices":["หน่วยระดับกองร้อยขึ้นไปถึงระดับ ทบ.","ทุกหน่วยที่ได้รับประโยชน์จากการใช้ สป.","หน่วยระดับกองพันขึ้นไปถึงระดับ ทบ.","ทุกหน่วยที่เป็นหน่วยทหาร"],"correct":1},{"id":11,"q":"ป้ายแสดงผลการซ่อม (ป้ายแท็ก) ใช้แบบพิมพ์ใด","choices":["400-071","400-072","400-073","400-065"],"correct":1},{"id":12,"q":"เมื่อช่างซ่อมพิจารณาแล้วว่า เครื่องที่ซ่อมนั้น มีความจำเป็นจะต้องเบิกอะไหล่ ในฐานะที่ท่านเป็นช่างซ่อม ท่านต้องทำอย่างไร","choices":["เขียนรายการอะไหล่ที่ต้องการเบิกใส่กระดาษเอ4 แล้วนำไปให้นายทหารซ่อมบำรุง","เขียนรายการอะไหล่ที่ต้องการเบิกใส่ลงไปในป้ายแสดงผลการซ่อม (ป้ายแท็ก)","เขียนรายการอะไหล่ที่ต้องการเบิกลงในใบส่งซ่อมแล้วนำไปให้ จนท.ส่งกำลัง (ร้อย.บก.)","เขียนรายการอะไหล่ที่ต้องการเบิกลงในใบส่งซ่อมแล้วนำไปให้ จนท.ส่งกำลัง กองร้อยซ่อมที่ตนสังกัดอยู่"],"correct":3},{"id":13,"q":"ใบส่งซ่อม (สีขาว) เมื่อเครื่องซ่อมเสร็จแล้ว เก็บไว้ส่วนไหน","choices":["ส่งคืน ตอนรับ-ส่ง ร้อย.บก.","ส่งคืน ตอนส่งกำลัง ร้อย.บก.","ส่งคืน จนท.ส่งกำลัง กองร้อยซ่อม เพื่อเก็บเป็นหลักฐาน","ไม่ต้องส่งคืน เพราะ จนท.คลังชิ้นส่วนซ่อม เก็บไว้แล้วตอนเบิกอะไหล่"],"correct":2},{"id":14,"q":"ในแบบฟอร์มใบส่งซ่อม ช่อง \"ผู้ส่ง\" ใครเป็นผู้ลงนาม","choices":["ผบ.หน่วย ที่ส่งเครื่องมาซ่อม","ฝอ.4 / ผู้ช่วยฯ หรือนายทหารสัญญาบัตรระดับ ผบ.มว. ขึ้นไป ของหน่วยส่งซ่อม","จ่ากองร้อย ของหน่วยส่งซ่อม","เจ้าหน้าที่ ที่มาส่งซ่อม"],"correct":1},{"id":15,"q":"หากคลังชิ้นส่วนซ่อม ไม่มีชิ้นส่วนซ่อมที่ท่านต้องการ ให้ระบุว่า...","choices":["ระงับจ่าย","ไม่มีชิ้นส่วน","ค้างจ่าย","เห็นควรส่งขั้นเหนือ"],"correct":2}];
+const LOW_CONF_IDS = [];
 const PINK_CONTENT = {"title":"ใบสีชมพู","lede":"ในบรรดาใบส่งซ่อม 4 สี (ชมพู เหลือง เขียว ขาว) มีเพียงใบเดียวที่ไม่เคยไปไหนไกลจากมือหน่วยส่งซ่อม — ใบสีชมพู","steps":[{"n":1,"title":"ยื่นพร้อมเครื่อง","body":"หน่วยส่งซ่อมยื่นใบส่งซ่อมครบชุด (ชมพู-เหลือง-เขียว-ขาว) พร้อม คมส. ให้ จนท.ตอนรับ-ส่งตรวจสอบกับหมายเลข คมส."},{"n":2,"title":"คืนทันที","body":"หลังลงหลักฐานและออกเลขงานในทะเบียนกลางเสร็จ จนท.ตอนรับ-ส่งคืนใบสีชมพูให้หน่วยส่งซ่อมทันที ไม่ต้องรอเครื่องซ่อมเสร็จ"},{"n":3,"title":"ถือไว้ตลอดระหว่างซ่อม","body":"หน่วยเก็บใบสีชมพูไว้เป็นหลักฐานยืนยันว่าเครื่องอยู่ระหว่างซ่อม ใช้ติดตามความคืบหน้างานได้ตลอดเวลา"},{"n":4,"title":"ยื่นอีกครั้งเพื่อปิดงาน","body":"เมื่อซ่อมเสร็จ หน่วยนำใบสีชมพูมายื่นคืนที่ตอนรับ-ส่ง เพื่อลงหลักฐานปิดงานซ่อม และรับเครื่องกลับพร้อมใบสีเขียว"}]};
 const CHAIN_CONTENT = {"title":"สายการส่งซ่อม","lede":"เมื่อเครื่องมือสื่อสารชำรุดเกินขีดความสามารถของหน่วย จะถูกส่งไล่ระดับขึ้นไปตามสายการซ่อมบำรุง","levels":[{"n":1,"name":"หน่วยใช้","desc":"หน่วยระดับกองร้อย/กองพันที่ใช้งาน คมส. โดยตรง — ช่างซ่อมประจำหน่วยซ่อมเองให้สุดความสามารถก่อนเสมอ"},{"n":2,"name":"หน่วยสนับสนุนโดยตรง (Direct Support)","desc":"เช่น พัน.ส.ซบร.เขตหลัง — รับซ่อมเมื่อเกินขีดความสามารถของหน่วยใช้ เป็นหน่วยหลักที่รับส่งซ่อมในสายงานของเรา"},{"n":3,"name":"หน่วยสนับสนุนทั่วไป (General Support)","desc":"เช่น บชร. หรือกองซ่อมเครื่องสื่อสาร-อิเล็กทรอนิกส์ — สนับสนุนระดับกองทัพภาค รับซ่อมเมื่อเกินขีดความสามารถของหน่วยสนับสนุนโดยตรง"}],"note":"ชื่อหน่วยจริงในแต่ละสายบังคับบัญชาอาจต่างกันไปตามสังกัด ควรตรวจสอบสายงานที่แน่นอนกับหน่วยเหนือของตนอีกครั้ง"};
 const SUPABASE_URL = "https://gbrqghzlfeyavotywyqm.supabase.co";
@@ -193,7 +211,41 @@ function errMsgFor(err) {
 
 /* ---------------- data load ---------------- */
 function mapParticipant(p) {
-  return { id: p.id, rank: p.rank, name: p.name, svcno: p.svcno, registeredAt: p.registered_at, answers: p.answers || {}, submittedAt: p.submitted_at, score: p.score };
+  return { id: p.id, rank: p.rank, name: p.name, svcno: p.svcno, photo: p.photo || null, registeredAt: p.registered_at, answers: p.answers || {}, submittedAt: p.submitted_at, score: p.score };
+}
+
+function avatarHtml(p, size) {
+  size = size || 40;
+  if (p.photo) return `<img class="avatar" src="${p.photo}" alt="" style="width:${size}px;height:${size}px">`;
+  const initial = esc((p.name || '?').trim().charAt(0) || '?');
+  return `<div class="avatar avatar-ph" style="width:${size}px;height:${size}px;font-size:${Math.round(size * 0.45)}px">${initial}</div>`;
+}
+
+/* Shrink + JPEG-compress a chosen photo client-side before it goes anywhere near the
+   network — an uncompressed phone photo is several MB, and that would bloat every
+   row in the participants table and make every poll fetch huge. */
+function resizeImageFile(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('read_error'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('decode_error'));
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        const scale = Math.min(1, maxDim / Math.max(w, h));
+        w = Math.max(1, Math.round(w * scale));
+        h = Math.max(1, Math.round(h * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 async function fetchState() {
@@ -229,6 +281,7 @@ async function insertParticipant(data) {
     headers: { 'Prefer': 'return=minimal,resolution=ignore-duplicates' },
     body: JSON.stringify([{
       id: data.id, exam_run_id: STATE.examRunId, rank: data.rank, name: data.name, svcno: data.svcno,
+      photo: data.photo || null,
       registered_at: data.registeredAt, answers: data.answers || {}, submitted_at: data.submittedAt, score: data.score,
     }]),
   });
@@ -325,14 +378,18 @@ async function pollTick() {
     const amFillingRegistration = onQuizRoute && !me && STATE.examMeta.status === 'registration';
     const amAtAdminPinGate = onAdminRoute && !isAdminUnlocked();
     const amEditingTimeLimit = onAdminRoute && isAdminUnlocked() && document.activeElement && document.activeElement.id === 'timeLimitInput';
+    // Once an exam run is finished nothing about it changes again (scores are fixed,
+    // no one new can register into a finished run) — re-rendering every 2s here would
+    // only flicker the score-reveal / ranking screen and restart its animation.
+    const onFinishedScreen = onQuizRoute && STATE.examMeta.status === 'finished';
     const transitioned = STATE.examMeta.status !== prevStatus || STATE.examRunId !== prevRunId;
     // While someone is mid-exam, mid-registration, at the admin PIN gate, or editing the
     // time-limit field, don't blow away their view (and any in-progress typing/click)
     // just because the 2s poll refreshed — only re-render if something actually changed
     // for them (e.g. force-finished, or exam started while they were filling a form).
-    // Everywhere else (waiting room, submitted-wait, results, the rest of the admin
-    // panel) live counts are exactly what we want.
-    const skipRender = amActivelyTakingExam || amFillingRegistration || amAtAdminPinGate || amEditingTimeLimit;
+    // Everywhere else (waiting room, submitted-wait, the rest of the admin panel) live
+    // counts are exactly what we want.
+    const skipRender = amActivelyTakingExam || amFillingRegistration || amAtAdminPinGate || amEditingTimeLimit || onFinishedScreen;
     if (!skipRender || transitioned) render();
     await deadlineWatch();
   } catch (e) {
@@ -365,6 +422,7 @@ function render() {
   else if (r[0] === 'content' && !r[1]) app.innerHTML = viewContentMenu();
   else if (r[0] === 'content' && r[1] === 'pink') app.innerHTML = viewPink();
   else if (r[0] === 'content' && r[1] === 'chain') app.innerHTML = viewChain();
+  else if (r[0] === 'quiz' && r[1] === 'review') app.innerHTML = dataReady ? viewReview() : viewLoading();
   else if (r[0] === 'quiz') app.innerHTML = dataReady ? viewQuizRouter() : viewLoading();
   else if (r[0] === 'admin') app.innerHTML = dataReady ? viewAdmin() : viewLoading();
   else app.innerHTML = viewHome();
@@ -433,10 +491,19 @@ function viewChain() {
 }
 
 /* ---------------- quiz router ---------------- */
+function isRevealed() { try { return sessionStorage.getItem('qz_revealed_' + STATE.examRunId) === '1'; } catch (e) { return false; } }
+function setRevealed() { try { sessionStorage.setItem('qz_revealed_' + STATE.examRunId, '1'); } catch (e) {} }
+
 function viewQuizRouter() {
   const me = myParticipant();
   if (!me) return viewRegister();
-  if (STATE.examMeta.status === 'finished') return viewResults(me);
+  if (STATE.examMeta.status === 'finished') {
+    // Show each person their own score first — the full ranking (and the fireworks/
+    // plum-drop for it) only appears once they choose to see it, so nobody sees where
+    // they landed relative to everyone else until they're ready.
+    if (!isRevealed()) return viewScoreReveal(me);
+    return viewResults(me);
+  }
   if (STATE.examMeta.status === 'running') {
     if (me.submittedAt) return viewSubmittedWait(me);
     return viewExam(me);
@@ -454,6 +521,11 @@ function viewRegister() {
       <label class="field"><span>ยศ</span><input type="text" name="rank" required placeholder="เช่น จ.ส.อ."></label>
       <label class="field"><span>ชื่อ-นามสกุล</span><input type="text" name="name" required placeholder="ชื่อ นามสกุล"></label>
       <label class="field"><span>หมายเลขประจำตัว</span><input type="text" name="svcno" required placeholder="หมายเลขประจำตัว"></label>
+      <label class="field">
+        <span>รูปถ่าย (ไม่บังคับ)</span>
+        <input type="file" id="photoInput" accept="image/*" capture="environment">
+        <div id="photoPreview" style="margin-top:10px"></div>
+      </label>
       <div class="err" id="regErr" style="display:none"></div>
       <button class="primary" type="submit">ลงทะเบียนเข้าสอบ</button>
     </form>
@@ -467,6 +539,7 @@ function viewWaiting(me) {
   <div class="eyebrow">แบบทดสอบ</div>
   <h1>ลงทะเบียนแล้ว</h1>
   <div class="waitwrap">
+    ${avatarHtml(me, 64)}
     <div class="spin"></div>
     <p>คุณ <b>${esc(me.rank)} ${esc(me.name)}</b> ลงทะเบียนเรียบร้อย</p>
     <p class="muted">กำลังรอผู้ควบคุมระบบกดเริ่มสอบ หน้านี้จะเปลี่ยนเองอัตโนมัติ</p>
@@ -509,11 +582,60 @@ function viewSubmittedWait(me) {
   <div class="eyebrow">แบบทดสอบ</div>
   <h1>ส่งคำตอบแล้ว</h1>
   <div class="waitwrap">
+    ${avatarHtml(me, 64)}
     <div class="spin"></div>
-    <p>คุณ <b>${esc(me.rank)} ${esc(me.name)}</b> ได้คะแนน <b>${me.score}</b> / ${QUESTIONS.length}</p>
-    <p class="muted">คะแนนจะประกาศพร้อมกันเมื่อทุกคนทำเสร็จ — กรุณารอสักครู่</p>
+    <p>คุณ <b>${esc(me.rank)} ${esc(me.name)}</b> ส่งคำตอบเรียบร้อย</p>
+    <p class="muted">คะแนนจะประกาศเมื่อทุกคนทำเสร็จ — กรุณารอสักครู่</p>
     <div class="waitcount">ส่งคำตอบแล้ว ${done} / ${total} คน</div>
   </div>
+  `;
+}
+
+function viewScoreReveal(me) {
+  return `
+  <div class="eyebrow">ผลสอบของคุณ</div>
+  <h1>คะแนนของคุณ</h1>
+  <div class="scorereveal">
+    ${avatarHtml(me, 72)}
+    <div class="bignum" id="revealNum">0</div>
+    <div class="outof">จาก ${QUESTIONS.length} คะแนน</div>
+    <p style="margin-top:14px">คุณ <b>${esc(me.rank)} ${esc(me.name)}</b></p>
+  </div>
+  <div class="submitbar" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+    <a class="ghost" data-go="#/quiz/review" style="text-decoration:none;display:inline-flex;align-items:center;padding:11px 22px;border:1px solid var(--line);border-radius:999px;font-size:14px">ดูข้อที่ตอบผิด</a>
+    <button class="primary" id="showRankBtn" data-score="${me.score}">ดูผลการจัดอันดับ</button>
+  </div>
+  `;
+}
+
+function viewReview() {
+  const me = myParticipant();
+  if (!me || STATE.examMeta.status !== 'finished') {
+    return `<div class="waitwrap"><p class="muted">ยังดูเฉลยไม่ได้ในตอนนี้</p><button class="ghost" data-go="#/quiz">← กลับ</button></div>`;
+  }
+  return `
+  <a class="backlink" data-go="#/quiz">← กลับ</a>
+  <div class="eyebrow">ทบทวนคำตอบ</div>
+  <h1>เฉลยของคุณ</h1>
+  <p class="muted">คุณ ${esc(me.rank)} ${esc(me.name)} — ตอบถูก ${me.score} / ${QUESTIONS.length} ข้อ</p>
+  ${QUESTIONS.map((q, i) => {
+    const mine = me.answers ? me.answers[q.id] : undefined;
+    const isCorrect = mine === q.correct;
+    return `
+    <div class="qcard reviewcard ${isCorrect ? 'ok' : 'bad'}">
+      <div class="qn">ข้อ ${i + 1} / ${QUESTIONS.length} ${isCorrect ? '✅ ตอบถูก' : (mine === undefined ? '⬜ ไม่ได้ตอบ' : '❌ ตอบผิด')}</div>
+      <div class="qtext">${esc(q.q)}</div>
+      ${q.choices.map((c, ci) => {
+        let cls = 'reviewchoice';
+        if (ci === q.correct) cls += ' correct';
+        else if (ci === mine) cls += ' wrong';
+        let tag = '';
+        if (ci === q.correct) tag = '<b>เฉลย</b>';
+        else if (ci === mine) tag = '<b>คุณตอบ</b>';
+        return `<div class="${cls}"><span class="lab">${['ก', 'ข', 'ค', 'ง'][ci]}. ${esc(c)}</span>${tag ? ` ${tag}` : ''}</div>`;
+      }).join('')}
+    </div>`;
+  }).join('')}
   `;
 }
 
@@ -530,8 +652,11 @@ function viewResults(me) {
     if (i === 0) cls += ' r1'; else if (i === 1) cls += ' r2'; else if (i === 2) cls += ' r3';
     if (i === lastIdx && ranked.length > 1) cls += ' rlast';
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
-    return `<div class="${cls}" data-rank="${i}"><div class="rn">${medal}</div><div class="info"><div class="nm">${esc(p.rank)} ${esc(p.name)}</div><div class="sub">${esc(p.svcno)}</div></div><div class="sc">${p.score}</div></div>`;
+    return `<div class="${cls}" data-rank="${i}"><div class="rn">${medal}</div>${avatarHtml(p, 40)}<div class="info"><div class="nm">${esc(p.rank)} ${esc(p.name)}</div><div class="sub">${esc(p.svcno)}</div></div><div class="sc">${p.score}</div></div>`;
   }).join('')}
+  </div>
+  <div style="text-align:center;margin-top:18px">
+    <a class="ghost" data-go="#/quiz/review" style="text-decoration:none;display:inline-flex;align-items:center;padding:11px 22px;border:1px solid var(--line);border-radius:999px;font-size:14px">ดูข้อที่ตอบผิดของคุณ</a>
   </div>
   `;
 }
@@ -567,7 +692,7 @@ function viewAdmin() {
       <div class="stat"><b>${status}</b>สถานะ</div>
     </div>
     <div class="card">
-      <p style="margin-bottom:8px"><b>เฉลยฉบับร่าง:</b> ${lowConfNote} จาก ${QUESTIONS.length} ข้อ ยังไม่ยืนยัน 100%<span class="badge-lowconf">ตรวจสอบก่อนใช้จริง</span></p>
+      <p style="margin-bottom:8px">${lowConfNote > 0 ? `<b>เฉลย:</b> ${lowConfNote} จาก ${QUESTIONS.length} ข้อ ยังไม่ยืนยัน 100%<span class="badge-lowconf">ตรวจสอบก่อนใช้จริง</span>` : `<b>เฉลย:</b> ยืนยันครบ ${QUESTIONS.length} ข้อ ตามแบบประเมินผลฉบับทางการ`}</p>
       ${status === 'registration' ? `
         <label class="field"><span>เวลาสอบ (นาที)</span><input type="number" id="timeLimitInput" min="1" value="${STATE.examMeta.timeLimitMinutes || 20}"></label>
         <button class="primary" id="startBtn" ${n === 0 ? 'disabled' : ''}>เริ่มสอบพร้อมกัน</button>
@@ -596,7 +721,7 @@ function renderHistorySection() {
     <details class="card" style="margin-bottom:10px">
       <summary style="cursor:pointer;font-weight:600">${dateStr} — ${ranked.length} คน${top ? ` — สูงสุด ${top.score}/${QUESTIONS.length} (${esc(top.name)})` : ''}</summary>
       <div style="margin-top:12px">
-        ${ranked.map((p, i) => `<div class="rankrow" style="margin-bottom:6px"><div class="rn">${i + 1}</div><div class="info"><div class="nm">${esc(p.rank)} ${esc(p.name)}</div><div class="sub">${esc(p.svcno)}</div></div><div class="sc">${p.submittedAt ? p.score : '—'}</div></div>`).join('')}
+        ${ranked.map((p, i) => `<div class="rankrow" style="margin-bottom:6px"><div class="rn">${i + 1}</div>${avatarHtml(p, 36)}<div class="info"><div class="nm">${esc(p.rank)} ${esc(p.name)}</div><div class="sub">${esc(p.svcno)}</div></div><div class="sc">${p.submittedAt ? p.score : '—'}</div></div>`).join('')}
       </div>
     </details>`;
   }).join('');
@@ -628,6 +753,22 @@ function bindEvents() {
   document.querySelectorAll('[data-go]').forEach(el => el.addEventListener('click', () => go(el.getAttribute('data-go'))));
 
   const regForm = document.getElementById('regForm');
+  let pendingPhotoDataUrl = null;
+  const photoInput = document.getElementById('photoInput');
+  if (photoInput) photoInput.addEventListener('change', async () => {
+    const file = photoInput.files && photoInput.files[0];
+    const preview = document.getElementById('photoPreview');
+    if (!file) { pendingPhotoDataUrl = null; if (preview) preview.innerHTML = ''; return; }
+    if (preview) preview.textContent = 'กำลังเตรียมรูป...';
+    try {
+      pendingPhotoDataUrl = await resizeImageFile(file, 320, 0.7);
+      if (preview) preview.innerHTML = `<img src="${pendingPhotoDataUrl}" style="width:80px;height:80px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`;
+    } catch (err) {
+      pendingPhotoDataUrl = null;
+      if (preview) preview.textContent = 'โหลดรูปไม่สำเร็จ ลองเลือกรูปใหม่ (ไม่ใส่รูปก็ลงทะเบียนได้ปกติ)';
+    }
+  });
+
   if (regForm) regForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(regForm);
@@ -637,7 +778,7 @@ function bindEvents() {
     if (STATE.examMeta.status !== 'registration') { errEl.textContent = 'ปิดรับลงทะเบียนแล้ว การสอบเริ่มไปแล้ว'; errEl.style.display = 'block'; return; }
     const btn = regForm.querySelector('button'); btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
     const id = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-    const data = { id, rank, name, svcno, registeredAt: Date.now(), answers: {}, submittedAt: null, score: null };
+    const data = { id, rank, name, svcno, photo: pendingPhotoDataUrl, registeredAt: Date.now(), answers: {}, submittedAt: null, score: null };
     try {
       await insertParticipant(data);
       setLocalParticipantId(id);
@@ -697,6 +838,12 @@ function bindEvents() {
     catch (err) { startBtn.disabled = false; startBtn.textContent = 'เริ่มสอบพร้อมกัน'; alert(errMsgFor(err)); }
   });
 
+  const showRankBtn = document.getElementById('showRankBtn');
+  if (showRankBtn) {
+    showRankBtn.addEventListener('click', () => { setRevealed(); render(); });
+    animateScoreReveal(Number(showRankBtn.getAttribute('data-score')) || 0);
+  }
+
   const resetBtn = document.getElementById('resetBtn');
   if (resetBtn) resetBtn.addEventListener('click', async () => {
     const msg = STATE.participants.length
@@ -706,6 +853,20 @@ function bindEvents() {
     try { await adminResetExam(); await fetchState(); render(); }
     catch (err) { alert(errMsgFor(err)); }
   });
+}
+
+function animateScoreReveal(target) {
+  const el = document.getElementById('revealNum');
+  if (!el) return;
+  const dur = 700;
+  const t0 = performance.now();
+  function step(t) {
+    const p = Math.min(1, (t - t0) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = String(Math.round(eased * target));
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }
 
 /* ---------------- fx: fireworks + falling plums ---------------- */
