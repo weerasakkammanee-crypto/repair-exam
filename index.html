@@ -316,18 +316,24 @@ async function pollTick() {
     const route = currentRoute();
     const me = myParticipant();
     const onQuizRoute = route[0] === 'quiz';
+    const onAdminRoute = route[0] === 'admin';
     const amActivelyTakingExam = onQuizRoute && STATE.examMeta.status === 'running' && me && !me.submittedAt;
-    // The registration form has no live data on it at all — re-rendering it on every
-    // poll just wipes out whatever the person is mid-typing (inputs get torn down and
-    // rebuilt every 2s, which reads as "I can't type anything into this field").
+    // None of these views show anything that needs a live refresh, so blindly
+    // re-rendering them on every 2s poll only ever does harm: it tears down and
+    // rebuilds the input, which wipes out whatever the person is mid-typing and reads
+    // as "I can't type anything into this field."
     const amFillingRegistration = onQuizRoute && !me && STATE.examMeta.status === 'registration';
+    const amAtAdminPinGate = onAdminRoute && !isAdminUnlocked();
+    const amEditingTimeLimit = onAdminRoute && isAdminUnlocked() && document.activeElement && document.activeElement.id === 'timeLimitInput';
     const transitioned = STATE.examMeta.status !== prevStatus || STATE.examRunId !== prevRunId;
-    // While someone is mid-exam or mid-registration, don't blow away their view (and any
-    // in-progress typing/click) just because the 2s poll refreshed — only re-render if
-    // something actually changed for them (e.g. force-finished, or exam started while
-    // they were filling the form). Everywhere else (waiting room, submitted-wait,
-    // results, admin panel) live counts are exactly what we want.
-    if (!(amActivelyTakingExam || amFillingRegistration) || transitioned) render();
+    // While someone is mid-exam, mid-registration, at the admin PIN gate, or editing the
+    // time-limit field, don't blow away their view (and any in-progress typing/click)
+    // just because the 2s poll refreshed — only re-render if something actually changed
+    // for them (e.g. force-finished, or exam started while they were filling a form).
+    // Everywhere else (waiting room, submitted-wait, results, the rest of the admin
+    // panel) live counts are exactly what we want.
+    const skipRender = amActivelyTakingExam || amFillingRegistration || amAtAdminPinGate || amEditingTimeLimit;
+    if (!skipRender || transitioned) render();
     await deadlineWatch();
   } catch (e) {
     lastLoadError = e;
