@@ -68,6 +68,7 @@
 
   .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 22px; }
   @media (max-width: 520px) { .menu-grid { grid-template-columns: 1fr; } }
+  .menu-grid--single { grid-template-columns: 1fr; max-width: 340px; }
   .menu-card {
     background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 26px 20px;
     cursor: pointer; text-align: left; box-shadow: 0 2px 10px var(--shadow); transition: transform .15s ease;
@@ -80,17 +81,6 @@
   .admin-entry button { background: none; border: none; color: var(--muted); font-size: 13px; text-decoration: underline; cursor: pointer; padding: 8px; }
 
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 14px; box-shadow: 0 1px 6px var(--shadow); }
-  .timeline { border-left: 3px solid var(--khaki); margin-left: 14px; padding-left: 22px; }
-  .timeline .step { position: relative; margin-bottom: 22px; }
-  .timeline .step::before { content: attr(data-n); position: absolute; left: -33px; top: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--olive); color: var(--card); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-  .timeline .step h3 { font-size: 16px; margin-bottom: 4px; }
-  .timeline .step p { font-size: 14px; color: var(--muted); margin: 0; }
-  .chain-box { background: var(--olive-fill); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 8px; }
-  .chain-box .lvl { font-size: 12px; font-weight: 700; color: var(--rust); text-transform: uppercase; letter-spacing: .05em; }
-  .chain-box h3 { font-size: 16px; margin: 4px 0; }
-  .chain-box p { font-size: 14px; color: var(--muted); margin: 0; }
-  .chain-arrow { text-align: center; font-size: 20px; color: var(--khaki); margin: 2px 0; }
-  .note-box { font-size: 13px; color: var(--muted); background: var(--khaki-fill); border-radius: 10px; padding: 12px 14px; margin-top: 10px; }
 
   label.field { display: block; margin-bottom: 16px; }
   label.field span { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
@@ -176,13 +166,11 @@
 <div id="app"></div>
 <div id="fxlayer"></div>
 <script>/* ============================================================
-   แบบทดสอบ + เนื้อหาความรู้ ใบส่งซ่อมเครื่องมือสื่อสาร
+   แบบทดสอบ ใบส่งซ่อมเครื่องมือสื่อสาร
    (Supabase backend — REST + polling, no Artifact dependency)
    ============================================================ */
 const QUESTIONS = [{"id":1,"q":"แบบฟอร์มใบส่งซ่อม ใช้แบบพิมพ์อะไร","choices":["ทบ.400-006","ทบ.468-311-1","ทบ.400-065","ทบ.468-311"],"correct":3},{"id":2,"q":"แบบฟอร์มใบส่งซ่อมตามระเบียบ ทบ. มีทั้งหมด 4 สี อยากทราบว่ามีสีอะไรบ้าง","choices":["ชมพู น้ำตาล ดำ ขาว","ชมพู เหลือง เขียว ขาว","ชมพู เหลือง เทา ขาว","ชมพู ฟ้า เขียว ขาว"],"correct":1},{"id":3,"q":"ส.1 พัน.102 มีความจำเป็นจะส่งซ่อมวิทยุรับ-ส่ง RT-710 มายัง พัน.ส.ซบร.เขตหลัง อยากทราบว่าใครคือผู้ลงนามอนุมัติให้ส่งซ่อม","choices":["นายทหารซ่อมบำรุง","ผบ.ส.1 พัน.ส.102","นายทหารส่งกำลังบำรุง","นายทหารยุทธการ"],"correct":1},{"id":4,"q":"ถ้าเครื่องสื่อสารที่จะนำมาส่งซ่อม พบว่าตัวเครื่องมีการชำรุด แตกหัก หน่วยส่งซ่อมจะต้องปฏิบัติอย่างไร","choices":["หน่วยจะต้องตั้งคณะกรรมการสอบสวน พร้อมกับแนบผลการสอบสวนมากับใบส่งซ่อม","หน่วยจะต้องนำใบสอบสวนของพนักงานสอบสวนที่เป็นเจ้าหน้าที่ตำรวจของท้องที่ที่เกิดเหตุการณ์ชำรุด","ให้หน่วยนำใบสอบสวนของเจ้าหน้าที่คลังสื่อสาร มาประกอบกับใบส่งซ่อม","นำใบรายงานจาก ผบ.หน่วยส่งซ่อมมากับใบส่งซ่อม"],"correct":0},{"id":5,"q":"การส่งซ่อมเครื่องสื่อสารมีข้อควรปฏิบัติดังนี้ ข้อใดไม่ใช่","choices":["ต้องทำความสะอาดและ ปบ.ระดับหน่วยใช้ให้เรียบร้อยก่อนนำส่งซ่อม","ตัวเครื่องและชิ้นส่วนอะไหล่ทุกส่วน จะต้องครบถ้วน ถูกต้องตามแบบของเครื่องสื่อสารชนิดนั้น","ให้ช่างซ่อมระดับหน่วยใช้ ซ่อมเครื่องสื่อสารให้สุดความสามารถเท่าที่จะซ่อมได้","ช่างซ่อมประจำหน่วยไม่ควรทำการซ่อมจนเกินขีดความสามารถของการซ่อมระดับหน่วย จนเป็นเหตุให้เครื่องสื่อสารเกิดการชำรุดเสียหายมากขึ้น"],"correct":3},{"id":6,"q":"หากท่านเป็นเจ้าหน้าที่นำเครื่องสื่อสารมาส่งซ่อม เมื่อเสร็จสิ้นกระบวนการส่งซ่อมเรียบร้อยแล้ว เจ้าหน้าที่จากหน่วยรับซ่อมจะออกเลขงาน และจะส่งคืนใบส่งซ่อมสีชมพูให้ อยากทราบว่าส่งคืนเพราะเหตุผลใด","choices":["เพื่อใช้เป็นหลักฐานนำไปให้ ผบ.หน่วย ดูว่าได้ทำการส่งซ่อมเรียบร้อยแล้ว","เพื่อใช้เป็นหลักฐานในการรับเครื่องสื่อสารคืน","เพื่อใช้เป็นหลักฐาน ให้กับเจ้าหน้าที่สื่อสารของหน่วย ตัดยอดออกจากบัญชีคุมชิ้นส่วนซ่อม","ถูกทุกข้อ"],"correct":1},{"id":7,"q":"ร.3 พัน.2 พล.ร.3 มีเครื่องรับ-ส่งวิทยุ ขนาดกำลังออกอากาศ 5 วัตต์ ยี่ห้อ ICOM จำนวน 10 เครื่อง ซึ่งเป็น สป.สาย ส. นอก อจย. เกิดชำรุดจากการใช้งาน อยากทราบว่าในขั้นต้น ร.3 พัน.2 พล.ร.3 จะนำวิทยุดังกล่าวไปที่ใด","choices":["กองซ่อมเครื่องสื่อสาร-อิเล็กทรอนิกส์ เขตบางเขน กทม.","พัน.ส.ซบร.เขตหลัง","ให้ผู้ใช้และช่างซ่อมของหน่วย ซ่อมเองก่อน","ส.พัน.3 พล.ร.3"],"correct":0},{"id":8,"q":"พัน.ส.ซบร.เขตหลัง มีภารกิจในการซ่อมบำรุงขั้นใด","choices":["ขั้นสนับสนุนโดยตรง","ขั้นสนับสนุนทั่วไป","ขั้นสนาม และขั้นคลัง","ขั้นหน่วยใช้"],"correct":2},{"id":9,"q":"หน่วยที่สนับสนุนการส่งกำลังในระดับกองทัพภาค คือ กองบัญชาการช่วยรบ (บชร.) อยากทราบว่าจัดอยู่ในส่วนใดตามสายการส่งกำลัง","choices":["หน่วยสนับสนุนโดยตรง","หน่วยสนับสนุนทั่วไป","หน่วยใช้","หน่วยสนับสนุนระดับคลัง"],"correct":1},{"id":10,"q":"หน่วยใช้ หมายถึงข้อใด","choices":["หน่วยระดับกองร้อยขึ้นไปถึงระดับ ทบ.","ทุกหน่วยที่ได้รับประโยชน์จากการใช้ สป.","หน่วยระดับกองพันขึ้นไปถึงระดับ ทบ.","ทุกหน่วยที่เป็นหน่วยทหาร"],"correct":1},{"id":11,"q":"ป้ายแสดงผลการซ่อม (ป้ายแท็ก) ใช้แบบพิมพ์ใด","choices":["400-071","400-072","400-073","400-065"],"correct":1},{"id":12,"q":"เมื่อช่างซ่อมของหน่วย พิจารณาแล้วว่า เครื่องที่ซ่อมนั้น มีความจำเป็นจะต้องเบิกอะไหล่ ในฐานะที่ท่านเป็นช่างซ่อมระดับ ขั้นคลัง ท่านต้องทำอย่างไร","choices":["เขียนรายการอะไหล่ที่ต้องการเบิกใส่กระดาษเอ4 แล้วนำไปให้นายทหารซ่อมบำรุง","เขียนรายการอะไหล่ที่ต้องการเบิกใส่ลงไปในป้ายแสดงผลการซ่อม (ป้ายแท็ก)","เขียนรายการอะไหล่ที่ต้องการเบิกลงในใบส่งซ่อมแล้วนำไปให้ จนท.ส่งกำลัง (ร้อย.บก.)","เขียนรายการอะไหล่ที่ต้องการเบิกลงในใบส่งซ่อมแล้วนำไปให้ จนท.ส่งกำลัง กองร้อยซ่อมที่ตนสังกัดอยู่"],"correct":3},{"id":13,"q":"ใบส่งซ่อม (สีขาว) เมื่อเครื่องซ่อมเสร็จแล้ว เก็บไว้ส่วนไหน","choices":["ส่งคืน ตอนรับ-ส่ง ร้อย.บก.","ส่งคืน ตอนส่งกำลัง ร้อย.บก.","ส่งคืน จนท.ส่งกำลัง กองร้อยซ่อม เพื่อเก็บเป็นหลักฐาน","ไม่ต้องส่งคืน เพราะ จนท.คลังชิ้นส่วนซ่อม เก็บไว้แล้วตอนเบิกอะไหล่"],"correct":2},{"id":14,"q":"ในแบบฟอร์มใบส่งซ่อม ช่อง \"ผู้ส่ง\" ใครเป็นผู้ลงนาม","choices":["ผบ.หน่วย ที่ส่งเครื่องมาซ่อม","ฝอ.4 / ผู้ช่วยฯ หรือนายทหารสัญญาบัตรระดับ ผบ.มว. ขึ้นไป ของหน่วยส่งซ่อม","จ่ากองร้อย ของหน่วยส่งซ่อม","เจ้าหน้าที่ ที่มาส่งซ่อม"],"correct":1},{"id":15,"q":"หากคลังชิ้นส่วนซ่อม ไม่มีชิ้นส่วนซ่อมที่ท่านต้องการ ให้ระบุว่า...","choices":["ระงับจ่าย","ไม่มีชิ้นส่วน","ค้างจ่าย","เห็นควรส่งขั้นเหนือ"],"correct":2}];
 const LOW_CONF_IDS = [];
-const PINK_CONTENT = {"title":"ใบสีชมพู","lede":"ในบรรดาใบส่งซ่อม 4 สี (ชมพู เหลือง เขียว ขาว) มีเพียงใบเดียวที่ไม่เคยไปไหนไกลจากมือหน่วยส่งซ่อม — ใบสีชมพู","steps":[{"n":1,"title":"ยื่นพร้อมเครื่อง","body":"หน่วยส่งซ่อมยื่นใบส่งซ่อมครบชุด (ชมพู-เหลือง-เขียว-ขาว) พร้อม คมส. ให้ จนท.ตอนรับ-ส่งตรวจสอบกับหมายเลข คมส."},{"n":2,"title":"คืนทันที","body":"หลังลงหลักฐานและออกเลขงานในทะเบียนกลางเสร็จ จนท.ตอนรับ-ส่งคืนใบสีชมพูให้หน่วยส่งซ่อมทันที ไม่ต้องรอเครื่องซ่อมเสร็จ"},{"n":3,"title":"ถือไว้ตลอดระหว่างซ่อม","body":"หน่วยเก็บใบสีชมพูไว้เป็นหลักฐานยืนยันว่าเครื่องอยู่ระหว่างซ่อม ใช้ติดตามความคืบหน้างานได้ตลอดเวลา"},{"n":4,"title":"ยื่นอีกครั้งเพื่อปิดงาน","body":"เมื่อซ่อมเสร็จ หน่วยนำใบสีชมพูมายื่นคืนที่ตอนรับ-ส่ง เพื่อลงหลักฐานปิดงานซ่อม และรับเครื่องกลับพร้อมใบสีเขียว"}]};
-const CHAIN_CONTENT = {"title":"สายการส่งซ่อม","lede":"เมื่อเครื่องมือสื่อสารชำรุดเกินขีดความสามารถของหน่วย จะถูกส่งไล่ระดับขึ้นไปตามสายการซ่อมบำรุง","levels":[{"n":1,"name":"หน่วยใช้","desc":"หน่วยระดับกองร้อย/กองพันที่ใช้งาน คมส. โดยตรง — ช่างซ่อมประจำหน่วยซ่อมเองให้สุดความสามารถก่อนเสมอ"},{"n":2,"name":"หน่วยสนับสนุนโดยตรง (Direct Support)","desc":"เช่น พัน.ส.ซบร.เขตหลัง — รับซ่อมเมื่อเกินขีดความสามารถของหน่วยใช้ เป็นหน่วยหลักที่รับส่งซ่อมในสายงานของเรา"},{"n":3,"name":"หน่วยสนับสนุนทั่วไป (General Support)","desc":"เช่น บชร. หรือกองซ่อมเครื่องสื่อสาร-อิเล็กทรอนิกส์ — สนับสนุนระดับกองทัพภาค รับซ่อมเมื่อเกินขีดความสามารถของหน่วยสนับสนุนโดยตรง"}],"note":"ชื่อหน่วยจริงในแต่ละสายบังคับบัญชาอาจต่างกันไปตามสังกัด ควรตรวจสอบสายงานที่แน่นอนกับหน่วยเหนือของตนอีกครั้ง"};
 const SUPABASE_URL = "https://gbrqghzlfeyavotywyqm.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdicnFnaHpsZmV5YXZvdHl3eXFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4NDg3NzQsImV4cCI6MjEwMzQyNDc3NH0.77ouENB8EATC8ct9upNUezhQ9b2D7ZaCo250UxHzzbQ";
 
@@ -489,9 +477,6 @@ function render() {
   const r = currentRoute();
   const app = document.getElementById('app');
   if (r[0] === '' || r[0] === undefined) app.innerHTML = viewHome();
-  else if (r[0] === 'content' && !r[1]) app.innerHTML = viewContentMenu();
-  else if (r[0] === 'content' && r[1] === 'pink') app.innerHTML = viewPink();
-  else if (r[0] === 'content' && r[1] === 'chain') app.innerHTML = viewChain();
   else if (r[0] === 'quiz' && r[1] === 'review') app.innerHTML = dataReady ? viewReview() : viewLoading();
   else if (r[0] === 'quiz') app.innerHTML = dataReady ? viewQuizRouter() : viewLoading();
   else if (r[0] === 'admin') app.innerHTML = dataReady ? viewAdmin() : viewLoading();
@@ -513,51 +498,11 @@ function viewHome() {
   return `
   <div class="eyebrow">แบบฝึกความรู้</div>
   <h1>ใบส่งซ่อมเครื่องมือสื่อสาร</h1>
-  <p class="muted">เลือกเมนูด้านล่าง — อ่านเนื้อหาเพื่อทบทวน หรือเข้าทำแบบทดสอบ</p>
-  <div class="menu-grid">
-    <div class="menu-card" data-go="#/content"><span class="ico">📘</span><h3>เนื้อหา</h3><p>ใบสีชมพู และสายการส่งซ่อม</p></div>
+  <p class="muted">แบบทดสอบ 15 ข้อ จับเวลา ประกาศผลพร้อมกัน</p>
+  <div class="menu-grid menu-grid--single">
     <div class="menu-card" data-go="#/quiz"><span class="ico">📝</span><h3>แบบทดสอบ</h3><p>15 ข้อ จับเวลา ประกาศผลพร้อมกัน</p></div>
   </div>
   <div class="admin-entry"><button data-go="#/admin">สำหรับผู้ควบคุมระบบ</button></div>
-  `;
-}
-
-function viewContentMenu() {
-  return `
-  <a class="backlink" data-go="#/">← กลับหน้าหลัก</a>
-  <h1>เนื้อหา</h1>
-  <div class="menu-grid">
-    <div class="menu-card" data-go="#/content/pink"><span class="ico">🎫</span><h3>ใบสีชมพู</h3><p>ใบส่งซ่อมสีชมพูไปไหนบ้าง</p></div>
-    <div class="menu-card" data-go="#/content/chain"><span class="ico">🔗</span><h3>สายการส่งซ่อม</h3><p>หน่วยไหนส่งซ่อมไปหาใคร</p></div>
-  </div>
-  `;
-}
-
-function viewPink() {
-  const c = PINK_CONTENT;
-  return `
-  <a class="backlink" data-go="#/content">← กลับ</a>
-  <div class="eyebrow">เนื้อหา</div>
-  <h1>${esc(c.title)}</h1>
-  <p class="muted">${esc(c.lede)}</p>
-  <div class="timeline">
-    ${c.steps.map(s => `<div class="step" data-n="${s.n}"><h3>${esc(s.title)}</h3><p>${esc(s.body)}</p></div>`).join('')}
-  </div>
-  `;
-}
-
-function viewChain() {
-  const c = CHAIN_CONTENT;
-  return `
-  <a class="backlink" data-go="#/content">← กลับ</a>
-  <div class="eyebrow">เนื้อหา</div>
-  <h1>${esc(c.title)}</h1>
-  <p class="muted">${esc(c.lede)}</p>
-  ${c.levels.map((l, i) => `
-    <div class="chain-box"><div class="lvl">ระดับ ${l.n}</div><h3>${esc(l.name)}</h3><p>${esc(l.desc)}</p></div>
-    ${i < c.levels.length - 1 ? '<div class="chain-arrow">⬇</div>' : ''}
-  `).join('')}
-  <div class="note-box">${esc(c.note)}</div>
   `;
 }
 
