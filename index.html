@@ -346,6 +346,16 @@ async function adminResetExam() {
   });
 }
 
+async function clearHistory() {
+  // "History" is just every participant row from a run other than the current one —
+  // clearing it means deleting those rows. The current run's own participants (its
+  // exam_run_id) are untouched.
+  await sb('participants?exam_run_id=neq.' + encodeURIComponent(STATE.examRunId), {
+    method: 'DELETE',
+    headers: { 'Prefer': 'return=minimal' },
+  });
+}
+
 async function forceFinishStragglers() {
   const deadline = STATE.examMeta.startAt + STATE.examMeta.timeLimitMinutes * 60000;
   const stragglers = STATE.participants.filter(p => !p.submittedAt);
@@ -759,7 +769,12 @@ function renderHistorySection() {
       </div>
     </details>`;
   }).join('');
-  return `<h3 style="margin-top:24px">ประวัติผลสอบ (${hist.length} รอบ)</h3>${rows}`;
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:24px;flex-wrap:wrap;gap:8px">
+    <h3 style="margin:0">ประวัติผลสอบ (${hist.length} รอบ)</h3>
+    <button class="ghost" id="clearHistoryBtn" style="font-size:13px;padding:8px 16px">ล้างประวัติทั้งหมด</button>
+  </div>
+  ${rows}`;
 }
 
 /* ---------------- helpers: timer / draft answers ---------------- */
@@ -890,6 +905,14 @@ function bindEvents() {
     if (!confirm(msg)) return;
     try { await adminResetExam(); await fetchState(); render(); }
     catch (err) { alert(errMsgFor(err)); }
+  });
+
+  const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+  if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', async () => {
+    if (!confirm('ลบประวัติผลสอบทุกรอบทิ้งถาวร (กู้คืนไม่ได้) ต้องการดำเนินการต่อหรือไม่?')) return;
+    clearHistoryBtn.disabled = true; clearHistoryBtn.textContent = 'กำลังล้าง...';
+    try { await clearHistory(); await fetchState(); render(); }
+    catch (err) { clearHistoryBtn.disabled = false; clearHistoryBtn.textContent = 'ล้างประวัติทั้งหมด'; alert(errMsgFor(err)); }
   });
 }
 
