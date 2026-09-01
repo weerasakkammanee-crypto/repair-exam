@@ -199,6 +199,7 @@ let editingParticipantId = null;      // id of the participant row currently ope
 let pendingEditPhotoDataUrl = undefined; // undefined = photo unchanged, null = removed, string = new data URL
 let showAddParticipant = false;       // whether the "add participant by hand" form is open in the admin panel
 let pendingAddPhotoDataUrl = null;
+let openHistoryRuns = {};             // { [examRunId]: true } — which history <details> rows the admin has opened
 
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -879,8 +880,14 @@ function renderHistorySection() {
     const ranked = run.participants.slice().sort((a, b) => (b.score || 0) - (a.score || 0) || ((a.submittedAt || Infinity) - (b.submittedAt || Infinity)));
     const top = ranked[0];
     const dateStr = new Date(run.finishedAt).toLocaleString('th-TH');
+    // The 2s poll re-renders this whole panel from scratch, so a plain <details> would
+    // silently snap shut every time it refreshed (it has no memory of being opened) —
+    // that's the "เด้ง" (bounces closed) bug. openHistoryRuns is the fix: it remembers
+    // which run's disclosure the admin opened, and we stamp the `open` attribute back
+    // on every render so it never appears to close on its own.
+    const isOpen = !!openHistoryRuns[run.examRunId];
     return `
-    <details class="card" style="margin-bottom:10px">
+    <details class="card" style="margin-bottom:10px" data-run-id="${esc(run.examRunId)}" ${isOpen ? 'open' : ''}>
       <summary style="cursor:pointer;font-weight:600">${dateStr} — ${ranked.length} คน${top ? ` — สูงสุด ${top.score}/${QUESTIONS.length} (${esc(top.name)})` : ''}</summary>
       <div style="margin-top:12px">
         ${ranked.map((p, i) => `<div class="rankrow" style="margin-bottom:6px"><div class="rn">${i + 1}</div>${avatarHtml(p, 36)}<div class="info"><div class="nm">${esc(p.rank)} ${esc(p.name)}</div><div class="sub">${esc(p.svcno)}</div></div><div class="sc">${p.submittedAt ? p.score : '—'}</div></div>`).join('')}
@@ -1171,11 +1178,19 @@ function bindEvents() {
     catch (err) { alert(errMsgFor(err)); }
   });
 
+  // Remember open/closed per run so the next poll-triggered render() (every 2s) can
+  // restore it — otherwise the details element re-renders closed and the admin sees it
+  // "bounce" shut right after they opened it.
+  document.querySelectorAll('details[data-run-id]').forEach(el => el.addEventListener('toggle', () => {
+    const runId = el.getAttribute('data-run-id');
+    if (el.open) openHistoryRuns[runId] = true; else delete openHistoryRuns[runId];
+  }));
+
   const clearHistoryBtn = document.getElementById('clearHistoryBtn');
   if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', async () => {
     if (!confirm('ลบประวัติผลสอบทุกรอบทิ้งถาวร (กู้คืนไม่ได้) ต้องการดำเนินการต่อหรือไม่?')) return;
     clearHistoryBtn.disabled = true; clearHistoryBtn.textContent = 'กำลังล้าง...';
-    try { await clearHistory(); await fetchState(); render(); }
+    try { await clearHistory(); openHistoryRuns = {}; await fetchState(); render(); }
     catch (err) { clearHistoryBtn.disabled = false; clearHistoryBtn.textContent = 'ล้างประวัติทั้งหมด'; alert(errMsgFor(err)); }
   });
 }
