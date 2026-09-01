@@ -160,6 +160,19 @@
   .stat { background: var(--olive-fill); border-radius: 10px; padding: 10px 14px; font-size: 13px; }
   .stat b { font-family: 'Taviraj',serif; font-size: 18px; display: block; color: var(--olive-deep); }
   .badge-lowconf { display: inline-block; font-size: 11px; background: var(--rust-fill); color: var(--rust-deep); padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
+
+  .plist { display: flex; flex-direction: column; gap: 8px; }
+  .prow { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; flex-wrap: wrap; }
+  .prow-edit { display: block; background: var(--bg-alt); }
+  .pinfo { flex: 1; min-width: 120px; }
+  .pname { font-weight: 600; font-size: 14px; }
+  .psub { font-size: 12px; color: var(--muted); }
+  .pstatus { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+  .pstatus.done { background: var(--good-fill); color: var(--good); }
+  .pstatus.pending { background: var(--khaki-fill); color: var(--muted); }
+  .pactions { display: flex; gap: 6px; }
+  button.ghost.small { padding: 6px 12px; font-size: 12px; border-radius: 999px; }
+  button.ghost.small.danger { color: var(--rust-deep); border-color: var(--rust); }
 </style>
 </head>
 <body>
@@ -182,6 +195,10 @@ let fxPlayedFor = null;
 let revealFxPlayedFor = null;
 let revealAutoAdvanceTimer = null;
 let deadlineHandling = false;
+let editingParticipantId = null;      // id of the participant row currently open for editing in the admin panel, or null
+let pendingEditPhotoDataUrl = undefined; // undefined = photo unchanged, null = removed, string = new data URL
+let showAddParticipant = false;       // whether the "add participant by hand" form is open in the admin panel
+let pendingAddPhotoDataUrl = null;
 
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -360,6 +377,24 @@ async function adminResetExam() {
   });
 }
 
+// Admin-only edit of a participant's own details (rank/name/svcno/photo) and, when
+// needed, their submission status/score directly — for fixing a duplicate/garbled
+// registration by hand rather than making the person retake the whole exam.
+async function updateParticipant(id, patch) {
+  await sb('participants?id=eq.' + encodeURIComponent(id), {
+    method: 'PATCH',
+    headers: { 'Prefer': 'return=minimal' },
+    body: JSON.stringify(patch),
+  });
+}
+
+async function deleteParticipant(id) {
+  await sb('participants?id=eq.' + encodeURIComponent(id), {
+    method: 'DELETE',
+    headers: { 'Prefer': 'return=minimal' },
+  });
+}
+
 async function clearHistory() {
   // "History" is just every participant row from a run other than the current one —
   // clearing it means deleting those rows. The current run's own participants (its
@@ -370,12 +405,18 @@ async function clearHistory() {
   });
 }
 
+// Force-submits everyone who hasn't submitted yet (with whatever answers they have on
+// record — blank if they never got that far) and closes the round. Called two ways:
+// automatically by deadlineWatch() once the clock runs out, and manually by the admin
+// panel's "บังคับส่งคำตอบ + ประกาศผลทันที" button for stragglers who can never come
+// back (lost connection, duplicate re-registration, etc.) and would otherwise block
+// the round from ever reaching 'finished' on its own.
 async function forceFinishStragglers() {
-  const deadline = STATE.examMeta.startAt + STATE.examMeta.timeLimitMinutes * 60000;
+  const now = Date.now();
   const stragglers = STATE.participants.filter(p => !p.submittedAt);
   await Promise.all(stragglers.map(p => sb('participants?id=eq.' + encodeURIComponent(p.id) + '&submitted_at=is.null', {
     method: 'PATCH', headers: { 'Prefer': 'return=minimal' },
-    body: JSON.stringify({ answers: p.answers || {}, score: scoreOf(p.answers || {}), submitted_at: deadline }),
+    body: JSON.stringify({ answers: p.answers || {}, score: scoreOf(p.answers || {}), submitted_at: now }),
   })));
   await sb('exam_state?id=eq.1&status=eq.running', {
     method: 'PATCH', headers: { 'Prefer': 'return=minimal' },
@@ -436,6 +477,11 @@ async function pollTick() {
     const amFillingRegistration = onQuizRoute && !me && STATE.examMeta.status === 'registration';
     const amAtAdminPinGate = onAdminRoute && !isAdminUnlocked();
     const amEditingTimeLimit = onAdminRoute && isAdminUnlocked() && document.activeElement && document.activeElement.id === 'timeLimitInput';
+    // Same idea for the participant edit/add forms — an open edit row or add-participant
+    // form should survive the 2s poll (which would otherwise re-render the admin panel
+    // from fresh STATE and wipe out an in-progress edit or a chosen-but-unsaved photo).
+    const amEditingParticipantField = onAdminRoute && isAdminUnlocked() && document.activeElement && document.activeElement.closest &&
+      (document.activeElement.closest('[data-edit-form]') || document.activeElement.closest('#addParticipantForm'));
     // Once an exam run is finished nothing about it changes again (scores are fixed,
     // no one new can register into a finished run) — re-rendering every 2s here would
     // only flicker the score-reveal / ranking screen and restart its animation.
@@ -447,7 +493,7 @@ async function pollTick() {
     // for them (e.g. force-finished, or exam started while they were filling a form).
     // Everywhere else (waiting room, submitted-wait, the rest of the admin panel) live
     // counts are exactly what we want.
-    const skipRender = amActivelyTakingExam || amFillingRegistration || amAtAdminPinGate || amEditingTimeLimit || onFinishedScreen;
+    const skipRender = amActivelyTakingExam || amFillingRegistration || amAtAdminPinGate || amEditingTimeLimit || amEditingParticipantField || onFinishedScreen;
     if (!skipRender || transitioned) render();
     await deadlineWatch();
   } catch (e) {
@@ -725,9 +771,14 @@ function viewAdmin() {
         <button class="primary" id="startBtn" ${n === 0 ? 'disabled' : ''}>เริ่มสอบพร้อมกัน</button>
         ${n === 0 ? '<p class="muted" style="margin-top:8px">ต้องมีผู้ลงทะเบียนอย่างน้อย 1 คน</p>' : ''}
       ` : ''}
-      ${status === 'running' ? `<p class="muted">กำลังสอบอยู่ — เวลาที่ตั้งไว้ ${STATE.examMeta.timeLimitMinutes} นาที</p>` : ''}
+      ${status === 'running' ? `
+        <p class="muted">กำลังสอบอยู่ — เวลาที่ตั้งไว้ ${STATE.examMeta.timeLimitMinutes} นาที</p>
+        <button class="ghost" id="forceFinishBtn">${n - submitted > 0 ? `บังคับส่งคำตอบ + ประกาศผลทันที (เหลือ ${n - submitted} คนยังไม่ส่ง)` : 'ประกาศผลทันที'}</button>
+        <p class="muted" style="font-size:12px;margin-top:8px">ใช้เมื่อมีคนเข้าสอบไม่ได้/หลุดค้างและกลับมาส่งไม่ได้แล้ว — กดแล้วปิดรอบทันทีโดยไม่ต้องรอครบเวลา คนที่ยังไม่ส่งจะถูกบันทึกคำตอบเท่าที่ตอบไว้ (ไม่ตอบเลย = 0 คะแนน) การกระทำนี้ย้อนกลับไม่ได้</p>
+      ` : ''}
       ${status === 'finished' ? `<p class="muted">ประกาศผลแล้ว</p>` : ''}
     </div>
+    ${renderParticipantsSection()}
     <div class="card">
       <p style="margin: 0">ผลสอบทุกรอบถูกบันทึกไว้ในฐานข้อมูลอยู่แล้ว ดูย้อนหลังได้จากรายการด้านล่าง</p>
     </div>
@@ -735,6 +786,90 @@ function viewAdmin() {
     ${renderHistorySection()}
   </div>
   `;
+}
+
+/* ---------------- admin: participant list (view/edit/add/delete) ---------------- */
+function renderParticipantsSection() {
+  const list = STATE.participants.slice().sort((a, b) => (a.registeredAt || 0) - (b.registeredAt || 0));
+  const rows = list.map(p => editingParticipantId === p.id ? renderParticipantEditRow(p) : renderParticipantViewRow(p)).join('');
+  return `
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+      <h3 style="margin:0">รายชื่อผู้เข้าสอบ (${list.length})</h3>
+      <button class="ghost small" id="addParticipantToggle">${showAddParticipant ? 'ยกเลิกเพิ่ม' : '+ เพิ่มผู้เข้าสอบด้วยมือ'}</button>
+    </div>
+    ${showAddParticipant ? renderAddParticipantForm() : ''}
+    ${list.length ? `<div class="plist">${rows}</div>` : '<p class="muted" style="margin:0">ยังไม่มีผู้ลงทะเบียน</p>'}
+  </div>`;
+}
+
+function renderParticipantViewRow(p) {
+  const statusHtml = p.submittedAt
+    ? `<span class="pstatus done">✅ ส่งแล้ว ${p.score}/${QUESTIONS.length}</span>`
+    : `<span class="pstatus pending">⏸️ ยังไม่ส่ง</span>`;
+  return `
+  <div class="prow">
+    ${avatarHtml(p, 44)}
+    <div class="pinfo">
+      <div class="pname">${esc(p.rank)} ${esc(p.name)}</div>
+      <div class="psub">${esc(p.svcno)}</div>
+    </div>
+    ${statusHtml}
+    <div class="pactions">
+      <button class="ghost small" data-edit-p="${p.id}">แก้ไข</button>
+      <button class="ghost small danger" data-del-p="${p.id}">ลบ</button>
+    </div>
+  </div>`;
+}
+
+function renderParticipantEditRow(p) {
+  const photo = pendingEditPhotoDataUrl === undefined ? p.photo : pendingEditPhotoDataUrl;
+  return `
+  <div class="prow prow-edit">
+    <form data-edit-form="${p.id}">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+        ${photo ? `<img src="${photo}" class="avatar" style="width:56px;height:56px;object-fit:cover">` : avatarHtml(p, 56)}
+        <div style="flex:1">
+          <input type="file" id="editPhotoInput" accept="image/*" style="font-size:12px">
+          ${photo ? `<button type="button" class="ghost small" id="editPhotoRemove" style="margin-top:6px">ลบรูป</button>` : ''}
+        </div>
+      </div>
+      <label class="field"><span>ยศ</span><input type="text" name="rank" value="${esc(p.rank)}" required></label>
+      <label class="field"><span>ชื่อ-นามสกุล</span><input type="text" name="name" value="${esc(p.name)}" required></label>
+      <label class="field"><span>หมายเลขประจำตัว</span><input type="text" name="svcno" value="${esc(p.svcno)}" required></label>
+      <label class="field" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" name="submitted" id="editSubmittedChk" ${p.submittedAt ? 'checked' : ''} style="width:auto">
+        <span style="margin:0;font-weight:400;color:var(--ink)">ส่งคำตอบแล้ว</span>
+      </label>
+      <label class="field" id="editScoreField" style="${p.submittedAt ? '' : 'display:none'}">
+        <span>คะแนน (จาก ${QUESTIONS.length})</span>
+        <input type="number" name="score" min="0" max="${QUESTIONS.length}" value="${p.score != null ? p.score : 0}">
+      </label>
+      <div class="err" id="editErr" style="display:none"></div>
+      <div style="display:flex;gap:8px">
+        <button class="primary" type="submit">บันทึก</button>
+        <button class="ghost" type="button" id="editCancelBtn">ยกเลิก</button>
+      </div>
+    </form>
+  </div>`;
+}
+
+function renderAddParticipantForm() {
+  return `
+  <div class="card" style="background:var(--bg-alt);margin-bottom:14px">
+    <form id="addParticipantForm">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+        <div id="addPhotoPreview"></div>
+        <input type="file" id="addPhotoInput" accept="image/*" style="font-size:12px;flex:1">
+      </div>
+      <label class="field"><span>ยศ</span><input type="text" name="rank" required placeholder="เช่น จ.ส.อ."></label>
+      <label class="field"><span>ชื่อ-นามสกุล</span><input type="text" name="name" required placeholder="ชื่อ นามสกุล"></label>
+      <label class="field"><span>หมายเลขประจำตัว</span><input type="text" name="svcno" required placeholder="หมายเลขประจำตัว"></label>
+      <div class="err" id="addErr" style="display:none"></div>
+      <button class="primary" type="submit">เพิ่มผู้เข้าสอบ</button>
+      <p class="muted" style="font-size:12px;margin:8px 0 0">จะถูกเพิ่มเข้ารอบสอบปัจจุบันทันที (ยังไม่ส่งคำตอบ)</p>
+    </form>
+  </div>`;
 }
 
 function renderHistorySection() {
@@ -881,6 +1016,150 @@ function bindEvents() {
     cancelRevealAutoAdvance();
     revealAutoAdvanceTimer = setTimeout(advanceToRanking, 3000);
   }
+
+  const forceFinishBtn = document.getElementById('forceFinishBtn');
+  if (forceFinishBtn) forceFinishBtn.addEventListener('click', async () => {
+    const notDone = STATE.participants.filter(p => !p.submittedAt).length;
+    const msg = notDone > 0
+      ? `ยังมีผู้เข้าสอบที่ยังไม่ส่งคำตอบอีก ${notDone} คน — กดยืนยันแล้วระบบจะบันทึกคำตอบเท่าที่มีอยู่ตอนนี้ให้ทันที (ถ้ายังไม่ได้ตอบข้อไหนเลยจะได้ 0 คะแนน) แล้วประกาศผลทันที ไม่สามารถย้อนกลับได้ ต้องการดำเนินการต่อหรือไม่?`
+      : 'ทุกคนส่งคำตอบครบแล้ว ต้องการประกาศผลทันทีหรือไม่?';
+    if (!confirm(msg)) return;
+    forceFinishBtn.disabled = true; forceFinishBtn.textContent = 'กำลังประกาศผล...';
+    try { await forceFinishStragglers(); await fetchState(); render(); }
+    catch (err) {
+      forceFinishBtn.disabled = false;
+      forceFinishBtn.textContent = notDone > 0 ? `บังคับส่งคำตอบ + ประกาศผลทันที (เหลือ ${notDone} คนยังไม่ส่ง)` : 'ประกาศผลทันที';
+      alert(errMsgFor(err));
+    }
+  });
+
+  /* ---- participant list: edit / delete / add ---- */
+  document.querySelectorAll('[data-edit-p]').forEach(btn => btn.addEventListener('click', () => {
+    editingParticipantId = btn.getAttribute('data-edit-p');
+    pendingEditPhotoDataUrl = undefined;
+    render();
+  }));
+
+  document.querySelectorAll('[data-del-p]').forEach(btn => btn.addEventListener('click', async () => {
+    const id = btn.getAttribute('data-del-p');
+    const p = STATE.participants.find(x => x.id === id);
+    const label = p ? `${p.rank} ${p.name}` : 'รายการนี้';
+    if (!confirm(`ลบ "${label}" ออกจากรายชื่อผู้เข้าสอบ? การกระทำนี้ย้อนกลับไม่ได้`)) return;
+    btn.disabled = true; btn.textContent = 'กำลังลบ...';
+    try {
+      await deleteParticipant(id);
+      if (editingParticipantId === id) editingParticipantId = null;
+      await fetchState(); await maybeMarkFinished(); await fetchState();
+      render();
+    } catch (err) {
+      btn.disabled = false; btn.textContent = 'ลบ';
+      alert(errMsgFor(err));
+    }
+  }));
+
+  const editCancelBtn = document.getElementById('editCancelBtn');
+  if (editCancelBtn) editCancelBtn.addEventListener('click', () => {
+    editingParticipantId = null; pendingEditPhotoDataUrl = undefined; render();
+  });
+
+  const editPhotoInput = document.getElementById('editPhotoInput');
+  if (editPhotoInput) editPhotoInput.addEventListener('change', async () => {
+    const file = editPhotoInput.files && editPhotoInput.files[0];
+    if (!file) return;
+    try {
+      pendingEditPhotoDataUrl = await resizeImageFile(file, 320, 0.7);
+      render();
+    } catch (err) {
+      alert(err && err.message === 'heic_unsupported'
+        ? 'ไฟล์รูปนี้เป็นแบบ HEIC ซึ่งเบราว์เซอร์นี้เปิดไม่ได้ ลองเลือกรูปอื่น'
+        : 'โหลดรูปไม่สำเร็จ ลองเลือกรูปใหม่');
+    }
+  });
+
+  const editPhotoRemove = document.getElementById('editPhotoRemove');
+  if (editPhotoRemove) editPhotoRemove.addEventListener('click', () => { pendingEditPhotoDataUrl = null; render(); });
+
+  const editSubmittedChk = document.getElementById('editSubmittedChk');
+  if (editSubmittedChk) editSubmittedChk.addEventListener('change', () => {
+    const scoreField = document.getElementById('editScoreField');
+    if (scoreField) scoreField.style.display = editSubmittedChk.checked ? '' : 'none';
+  });
+
+  document.querySelectorAll('[data-edit-form]').forEach(form => form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = form.getAttribute('data-edit-form');
+    const fd = new FormData(form);
+    const rank = fd.get('rank').trim(), name = fd.get('name').trim(), svcno = fd.get('svcno').trim();
+    const errEl = document.getElementById('editErr');
+    if (!rank || !name || !svcno) { errEl.textContent = 'กรุณากรอกข้อมูลให้ครบ'; errEl.style.display = 'block'; return; }
+    const p = STATE.participants.find(x => x.id === id);
+    const submitted = fd.get('submitted') === 'on';
+    const patch = { rank, name, svcno };
+    if (pendingEditPhotoDataUrl !== undefined) patch.photo = pendingEditPhotoDataUrl;
+    if (submitted) {
+      let score = Number(fd.get('score'));
+      if (!Number.isFinite(score)) score = 0;
+      score = Math.max(0, Math.min(QUESTIONS.length, Math.round(score)));
+      patch.score = score;
+      patch.submitted_at = (p && p.submittedAt) || Date.now();
+    } else {
+      patch.score = null;
+      patch.submitted_at = null;
+    }
+    const btn = form.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+    try {
+      await updateParticipant(id, patch);
+      editingParticipantId = null; pendingEditPhotoDataUrl = undefined;
+      await fetchState(); await maybeMarkFinished(); await fetchState();
+      render();
+    } catch (err) {
+      btn.disabled = false; btn.textContent = 'บันทึก';
+      errEl.textContent = errMsgFor(err); errEl.style.display = 'block';
+    }
+  }));
+
+  const addParticipantToggle = document.getElementById('addParticipantToggle');
+  if (addParticipantToggle) addParticipantToggle.addEventListener('click', () => {
+    showAddParticipant = !showAddParticipant; pendingAddPhotoDataUrl = null; render();
+  });
+
+  const addPhotoInput = document.getElementById('addPhotoInput');
+  if (addPhotoInput) addPhotoInput.addEventListener('change', async () => {
+    const file = addPhotoInput.files && addPhotoInput.files[0];
+    const preview = document.getElementById('addPhotoPreview');
+    if (!file) { pendingAddPhotoDataUrl = null; if (preview) preview.innerHTML = ''; return; }
+    if (preview) preview.textContent = 'กำลังเตรียมรูป...';
+    try {
+      pendingAddPhotoDataUrl = await resizeImageFile(file, 320, 0.7);
+      if (preview) preview.innerHTML = `<img src="${pendingAddPhotoDataUrl}" style="width:56px;height:56px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`;
+    } catch (err) {
+      pendingAddPhotoDataUrl = null;
+      if (preview) preview.textContent = (err && err.message === 'heic_unsupported')
+        ? 'ไฟล์รูปนี้เป็นแบบ HEIC เบราว์เซอร์นี้เปิดไม่ได้ ลองเลือกรูปอื่น'
+        : 'โหลดรูปไม่สำเร็จ ลองเลือกรูปใหม่';
+    }
+  });
+
+  const addParticipantForm = document.getElementById('addParticipantForm');
+  if (addParticipantForm) addParticipantForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(addParticipantForm);
+    const rank = fd.get('rank').trim(), name = fd.get('name').trim(), svcno = fd.get('svcno').trim();
+    const errEl = document.getElementById('addErr');
+    if (!rank || !name || !svcno) { errEl.textContent = 'กรุณากรอกข้อมูลให้ครบ'; errEl.style.display = 'block'; return; }
+    const btn = addParticipantForm.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'กำลังเพิ่ม...';
+    const id = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const data = { id, rank, name, svcno, photo: pendingAddPhotoDataUrl, registeredAt: Date.now(), answers: {}, submittedAt: null, score: null };
+    try {
+      await insertParticipant(data);
+      showAddParticipant = false; pendingAddPhotoDataUrl = null;
+      await fetchState();
+      render();
+    } catch (err) {
+      btn.disabled = false; btn.textContent = 'เพิ่มผู้เข้าสอบ';
+      errEl.textContent = errMsgFor(err); errEl.style.display = 'block';
+    }
+  });
 
   const resetBtn = document.getElementById('resetBtn');
   if (resetBtn) resetBtn.addEventListener('click', async () => {
